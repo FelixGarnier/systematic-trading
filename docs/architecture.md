@@ -21,8 +21,8 @@ n'est calculée qu'avec des informations disponibles à la clôture de `t`.
 | 3 | Règles de trading | Validé |
 | 4 | Scaling & capping | Validé |
 | 5 | Combinaison & FDM | Validé |
-| 6 | Position sizing | En discussion |
-| 7 | Portefeuille & IDM | À faire |
+| 6 | Position sizing | Validé |
+| 7 | Portefeuille & IDM | En discussion |
 | 8 | Buffer & coûts | À faire |
 | 9 | Backtest & évaluation | À faire |
 | 10 | Exécution live & risque | À faire |
@@ -253,7 +253,44 @@ Au sein de chaque groupe : corrélations poolées entre instruments (plus stable
 
 ## Bloc 6 — Position sizing
 
-*À détailler.*
+**Formule centrale (Carver, *Systematic Trading*)**
+
+$$N_t = \frac{\text{Capital}_t \times \tau \times F_t}{10 \times \sigma^{\text{annual}}_t \times P^{\text{brut}}_t}$$
+
+- $F_t$ : Combined Forecast $\in [-20, +20]$, $\mathbb{E}[|F|] = 10$
+- $\tau = 13\%$ : volatility target
+- $\sigma^{\text{annual}}_t$ : volatilité annualisée (bloc 2), = $16 \times \sigma^{\text{daily}}_t$
+- $P^{\text{brut}}_t$ : prix brut (pas ajusté)
+- $\text{Capital}_t$ : valeur du compte **courant** (pas initial)
+- Le "10" = $\mathbb{E}[|F|]$ : à $F=10$, la position contribue exactement $\tau$ de vol annuelle
+
+Réécriture explicite du Volatility Scalar :
+
+$$N_t = \underbrace{\frac{\text{Capital}_t \times \tau}{\sigma^{\text{annual}}_t \times P^{\text{brut}}_t}}_{\text{Volatility Scalar (actions)}} \times \frac{F_t}{10}$$
+
+**Sizing sur capital courant — protection contre le compounding des pertes**
+
+Après un drawdown de 20 % (capital = 80 k$), les positions se réduisent automatiquement
+de 20 %. La vol en % du capital reste constante à τ quelle que soit la taille du compte.
+Avec capital initial fixe, le levier effectif monterait à 1,25x après -20 %, ce qui
+amplifie les pertes suivantes et mène à la ruine.
+
+**Plancher de volatilité**
+
+$\sigma^{\text{annual}}_t \leftarrow \max(\sigma^{\text{annual}}_t,\; \sigma^{\text{floor}})$
+où $\sigma^{\text{floor}}$ = 5e percentile sur 500 jours. Évite les positions explosives
+en période de volatilité anormalement basse.
+
+**SHY retiré de l'univers**
+
+Vol ~1,5 % / an → Volatility Scalar ≈ 163 000 actions → notionnel ~138x le capital.
+Incompatible avec la contrainte de levier 2x. Univers obligations : IEF, TLT, TIP, LQD.
+
+**Contrainte de levier**
+
+$$\text{Levier brut}_t = \frac{\sum_i |N_{i,t} \times P^{\text{brut}}_{i,t}|}{\text{Capital}_t} \leq 2$$
+
+Si dépassé : rescaling uniforme de toutes les positions. Appliqué après le buffer (bloc 8).
 
 ---
 

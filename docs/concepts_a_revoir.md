@@ -15,6 +15,13 @@ Liste des notions à approfondir. Cocher quand le concept est maîtrisé.
 - [ ] Effet falaise (ghost effect) : pourquoi l'écart-type simple crée des sauts artificiels.
 - [ ] Mélange 70/30 avec la vol de long terme : intuition et formule.
 
+## Bloc 6 — Position sizing
+
+- [ ] Formule N = Capital × τ × F / (10 × σ_annual × P) : dériver chaque terme depuis le critère "à F=10, vol = τ".
+- [ ] Volatility Scalar : comment l'interpréter comme le nombre d'actions à "pleine cible".
+- [ ] Sizing sur capital courant vs capital initial : pourquoi le second mène à la ruine (compounding des pertes).
+- [ ] Plancher de volatilité : lien avec l'effet krach suivi de calme (ex. mars 2020 → été 2020).
+
 ## Bloc 5 — Combinaison & FDM
 
 - [ ] Pourquoi la combinaison pondérée affaiblit le signal (variance de la somme < somme des variances).
