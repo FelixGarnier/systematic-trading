@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment & secrets
+.env
+.env.*
+*.key
+*.pem
+secrets.yaml
+config/secrets.yaml
+
+# Data (heavy, regenerable)
+data/raw/
+data/clean/
+*.parquet
+*.h5
+*.hdf5
+*.feather
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Test & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ruff / mypy cache
+.ruff_cache/
+.mypy_cache/
