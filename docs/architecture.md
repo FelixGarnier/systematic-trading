@@ -25,7 +25,7 @@ n'est calculée qu'avec des informations disponibles à la clôture de `t`.
 | 7 | Portefeuille & IDM | Validé |
 | 8 | Buffer & coûts | Validé |
 | 9 | Backtest & évaluation | Validé |
-| 10 | Exécution live & risque | En discussion |
+| 10 | Exécution live & risque | Validé |
 
 ---
 
@@ -125,7 +125,22 @@ Toutes les séries FRED sont décalées d'un jour ouvré (délai de publication)
 
 - Contrôles (signalés, jamais corrigés silencieusement) : jours manquants vs calendrier NYSE,
   prix figés, rendements extrêmes (> 8σ), prix ≤ 0, cohérence brut/ajusté vs dividendes et splits.
-- Couche brute immuable (avec date de téléchargement) + couche nettoyée en parquet alignée NYSE.
+- **Deux couches de stockage** :
+
+| Technologie | Usage | Pourquoi |
+|---|---|---|
+| Parquet | Toutes les séries temporelles historiques | Colonnaire, rapide en lecture, pas de serveur, versionnable |
+| SQLite | Données opérationnelles live (ordres, fills, positions) | ACID, cohérence garantie si crash, pas de serveur |
+
+```
+data/
+├── raw/          # couche brute immuable (prices_raw.parquet, fred_rates.parquet)
+├── clean/        # alignée NYSE (prices_adj, prices_unadj, dividends, rates)
+├── signals/      # volatility, forecasts, positions_target
+├── portfolio/    # positions, pnl, metrics (backtest + live history)
+└── live/
+    └── trading.db   # SQLite : orders, fills, account_snapshot, positions live
+```
 
 ---
 
@@ -437,7 +452,51 @@ Un Sharpe stable sur les 4 périodes est plus convaincant qu'un Sharpe global é
 
 ## Bloc 10 — Exécution live & risque
 
-*À détailler.*
+**Pourquoi Alpaca en V1 (pas IBKR)**
+
+IBKR n'apporte rien pour un univers ETF US : setup lourd (TWS desktop à faire tourner),
+API plus complexe. Sa valeur arrive en V2 (futures VX, commodity). La BrokerInterface
+abstraite rend la migration transparente : une nouvelle classe, rien d'autre à changer.
+
+**BrokerInterface (interface abstraite)**
+
+```python
+class BrokerInterface:
+    def get_account(self) -> Account
+    def get_positions(self) -> dict[str, int]
+    def get_price(self, ticker) -> float
+    def submit_order(self, order: Order)
+    def cancel_order(self, order_id)
+```
+
+`AlpacaBroker` implémente cette interface en V1. `IBKRBroker` en V2.
+
+**Boucle quotidienne**
+
+Post-clôture (~16h30 ET) :
+1. Prix de clôture → Tiingo
+2. Taux FRED (décalés 1j)
+3. Calcul σ, forecasts, N*
+4. Buffer → liste d'ordres
+5. Vérification levier → rescaling si besoin
+6. Logging complet
+7. Soumission des ordres à l'ouverture du lendemain
+
+**Exécution passive**
+
+- Achat : limit au bid (ou mid)
+- Vente : limit à l'ask (ou mid)
+- Re-peg toutes les 5 min si non rempli
+- Conversion en market après 30 min
+
+**Contrôles de risque live**
+
+- Marge préventive : bloquer les nouveaux ordres augmentant l'exposition si levier > 1,5x
+- Liquidité : ordre ≤ X % de l'ADV (automatiquement respecté pour nos ETF liquides)
+- Circuit breaker : si P&L jour < −5 % du capital, arrêt des ordres + alerte
+
+**Logging** : positions cibles vs réelles, ordres soumis/remplis/rejetés, capital, levier,
+σ portefeuille, anomalies. Stocké dans SQLite (`data/live/trading.db`).
 
 ---
 

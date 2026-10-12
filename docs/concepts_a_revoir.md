@@ -15,6 +15,13 @@ Liste des notions à approfondir. Cocher quand le concept est maîtrisé.
 - [ ] Effet falaise (ghost effect) : pourquoi l'écart-type simple crée des sauts artificiels.
 - [ ] Mélange 70/30 avec la vol de long terme : intuition et formule.
 
+## Bloc 10 — Exécution live & risque
+
+- [ ] BrokerInterface : pourquoi l'abstraction permet de changer de broker sans toucher au système.
+- [ ] Exécution passive vs market : impact sur le slippage et les coûts réels.
+- [ ] Circuit breaker : protection contre les bugs de calcul (signal erroné = position catastrophique).
+- [ ] ACID (SQLite) : pourquoi la cohérence transactionnelle est critique pour les ordres live.
+
 ## Bloc 9 — Backtest & évaluation
 
 - [ ] In-sample vs out-of-sample : pourquoi la coupure classique n'est pas nécessaire si aucun paramètre n'est optimisé sur les données.
