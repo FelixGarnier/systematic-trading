@@ -24,8 +24,8 @@ n'est calculée qu'avec des informations disponibles à la clôture de `t`.
 | 6 | Position sizing | Validé |
 | 7 | Portefeuille & IDM | Validé |
 | 8 | Buffer & coûts | Validé |
-| 9 | Backtest & évaluation | En discussion |
-| 10 | Exécution live & risque | À faire |
+| 9 | Backtest & évaluation | Validé |
+| 10 | Exécution live & risque | En discussion |
 
 ---
 
@@ -379,7 +379,59 @@ Dividendes payés sur les shorts : implicites dans la formule P&L (r_total néga
 
 ## Bloc 9 — Backtest & évaluation
 
-*À détailler.*
+**Période** : 2007 → aujourd'hui. Métriques reportées à partir de 2009 (2 ans de chauffe pour EWMA et corrélations).
+
+**Timing** : signal calculé à la clôture de `t`, ordre exécuté au prix d'ouverture de `t+1`.
+
+**Pas de coupure train/test classique** : aucun paramètre n'est optimisé sur l'ensemble des données
+(fenêtres EWMAC et poids par handcrafting, scalaires sur fenêtre expansive). À la place :
+
+**Walk-forward sur 4 sous-périodes**
+
+```
+2007──2012──2017──2022──2026
+  P1    P2    P3    P4
+```
+
+P1 = crise 2008, P2 = bull post-crise, P3 = COVID + reprise, P4 = inflation + hausse des taux.
+Un Sharpe stable sur les 4 périodes est plus convaincant qu'un Sharpe global élevé.
+
+**Métriques primaires**
+
+| Métrique | Ce qu'elle mesure |
+|---|---|
+| Sharpe annualisé (√256 × μ/σ) | Rendement par unité de risque |
+| Max drawdown | Pire perte depuis un sommet |
+| Skewness des rendements | Asymétrie — skew positif attendu pour le trend |
+
+**Métriques secondaires**
+
+- Calmar ratio (Sharpe / Max Drawdown)
+- Turnover annuel (vérification speed limit bloc 8)
+- Levier moyen et distribution
+- Hit rate (~45–50 % attendu pour le trend : gains via magnitude, pas fréquence)
+
+**Métriques de décomposition**
+
+- Sharpe par règle (EWMAC 8/32, 16/64, 32/128, Carry Medium, Carry Slow)
+- Sharpe par classe d'actifs
+- Sharpe par sous-période (walk-forward)
+
+**Benchmarks** (bloc 0) : SPY, 60/40, même univers long-only au même vol target.
+
+**Slippage** : multiplicateur 1,5x sur les coûts de spread estimés.
+
+**Pièges documentés**
+
+- Pas de modification de paramètres après inspection des résultats (overfitting implicite)
+- Biais de survie : mentionner explicitement dans le rapport
+- Slippage additionnel possible (ordre market après buffer)
+
+**Outils de visualisation**
+
+- QuantStats : tearsheet HTML complet (référence industrie)
+- Plotly : equity curve, drawdown, rolling Sharpe, contribution par classe (interactif)
+- Matplotlib : figures statiques pour README et présentation
 
 ---
 

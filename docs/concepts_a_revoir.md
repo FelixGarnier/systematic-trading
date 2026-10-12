@@ -15,6 +15,13 @@ Liste des notions à approfondir. Cocher quand le concept est maîtrisé.
 - [ ] Effet falaise (ghost effect) : pourquoi l'écart-type simple crée des sauts artificiels.
 - [ ] Mélange 70/30 avec la vol de long terme : intuition et formule.
 
+## Bloc 9 — Backtest & évaluation
+
+- [ ] In-sample vs out-of-sample : pourquoi la coupure classique n'est pas nécessaire si aucun paramètre n'est optimisé sur les données.
+- [ ] Walk-forward : différence avec le train/test split, et pourquoi la stabilité inter-périodes est plus convaincante qu'un Sharpe global.
+- [ ] Skewness positive : pourquoi un système trend a un hit rate < 50 % mais gagne quand même (magnitude des gains > fréquence).
+- [ ] Calmar ratio : intuition et pourquoi il complète le Sharpe.
+
 ## Bloc 8 — Buffer & coûts
 
 - [ ] Speed limit de Carver : comment exprimer un coût de transaction en unités de Sharpe.
