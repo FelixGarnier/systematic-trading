@@ -15,6 +15,13 @@ Liste des notions à approfondir. Cocher quand le concept est maîtrisé.
 - [ ] Effet falaise (ghost effect) : pourquoi l'écart-type simple crée des sauts artificiels.
 - [ ] Mélange 70/30 avec la vol de long terme : intuition et formule.
 
+## Bloc 5 — Combinaison & FDM
+
+- [ ] Pourquoi la combinaison pondérée affaiblit le signal (variance de la somme < somme des variances).
+- [ ] FDM = 1/√(w'Σw) : intuition géométrique (diversification entre règles).
+- [ ] Pourquoi deux FDM et pas un seul : la composition des règles est structurellement différente.
+- [ ] Corrélations négatives → 0 : pourquoi c'est conservateur et pas naïf.
+
 ## Bloc 4 — Scaling & capping
 
 - [ ] Fenêtre expansive poolée : pourquoi "expansive" évite le look-ahead et pourquoi "poolée" stabilise l'estimation.

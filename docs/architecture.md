@@ -20,8 +20,8 @@ n'est calculée qu'avec des informations disponibles à la clôture de `t`.
 | 2 | Volatilité | Validé |
 | 3 | Règles de trading | Validé |
 | 4 | Scaling & capping | Validé |
-| 5 | Combinaison & FDM | En discussion |
-| 6 | Position sizing | À faire |
+| 5 | Combinaison & FDM | Validé |
+| 6 | Position sizing | En discussion |
 | 7 | Portefeuille & IDM | À faire |
 | 8 | Buffer & coûts | À faire |
 | 9 | Backtest & évaluation | À faire |
@@ -225,7 +225,29 @@ Cap : ±20 (coupe ~5 % des valeurs extrêmes, protection, non négociable).
 
 ## Bloc 5 — Combinaison & FDM
 
-*À détailler.*
+**Objectif** : combiner les capped forecasts d'un instrument en un signal unique.
+
+$$\text{Average Forecast}_t = \sum_i w_i \times \text{CappedForecast}_{i,t}$$
+
+$$\text{Combined Forecast}_t = \text{clip}(\text{FDM} \times \text{Average Forecast}_t,\; -20,\; +20)$$
+
+$$\text{FDM} = \frac{1}{\sqrt{w^\top \Sigma\, w}}$$
+
+où $\Sigma$ est la matrice de corrélation entre capped forecasts, estimée sur données passées.
+
+**Deux FDM distincts** (imposé par la structure des règles, pas de l'overfitting) :
+
+| Type | Règles | FDM estimé |
+|---|---|---|
+| Trend + Carry (11 instruments) | EWMAC ×3 + Carry ×2 | ~1,19 |
+| Trend only (4 instruments) | EWMAC ×3 | ~1,08–1,10 |
+
+Au sein de chaque groupe : corrélations poolées entre instruments (plus stable).
+
+**Précautions anti-instabilité**
+- Corrélations négatives ramenées à 0 avant calcul (évite FDM artificiellement élevé).
+- Plafond FDM à 2,5.
+- Lissage EWMA long sur la matrice de corrélation (évite les sauts brusques de position).
 
 ---
 
