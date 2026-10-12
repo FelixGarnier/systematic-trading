@@ -22,8 +22,8 @@ n'est calculée qu'avec des informations disponibles à la clôture de `t`.
 | 4 | Scaling & capping | Validé |
 | 5 | Combinaison & FDM | Validé |
 | 6 | Position sizing | Validé |
-| 7 | Portefeuille & IDM | En discussion |
-| 8 | Buffer & coûts | À faire |
+| 7 | Portefeuille & IDM | Validé |
+| 8 | Buffer & coûts | En discussion |
 | 9 | Backtest & évaluation | À faire |
 | 10 | Exécution live & risque | À faire |
 
@@ -71,13 +71,13 @@ n'est calculée qu'avec des informations disponibles à la clôture de `t`.
 |---|---|---|
 | Actions US | SPY, IWM | Trend + Carry |
 | Actions internationales | VGK, EWJ, EEM, EPP, EWC | Trend + Carry |
-| Obligations | SHY, IEF, TLT, TIP, LQD | Trend + Carry |
-| Matières premières | GLD, DBC (DBA, DBB candidats) | Trend uniquement |
+| Obligations | IEF, TLT, TIP, LQD | Trend + Carry (sauf TIP : trend-only) |
+| Matières premières | GLD, DBC | Trend uniquement |
 | Devises | UUP | Trend uniquement |
 
-Les corrélations seront revues au bloc 7 ; certains instruments pourront être fusionnés ou retirés.
-SHY (vol ~1–2 %) : cas limite, décision de poids reportée aux blocs 6 et 7.
+SHY retiré (vol ~1,5 % / an → Volatility Scalar ~138x le capital, incompatible avec levier 2x, cf. bloc 6).
 TIP : carry écarté (rendement réel structurellement négatif 2011–2022, signal biaisé) → trend-only.
+Les corrélations seront revues au bloc 7 ; certains instruments pourront être fusionnés ou retirés.
 
 **Biais reconnus**
 
@@ -115,7 +115,6 @@ clôtures en live pour garantir la cohérence backtest / live.
 | Instrument | Carry brut |
 |---|---|
 | ETF actions | Dividendes des 12 derniers mois / prix brut − taux cash |
-| SHY | `DGS2` − taux cash |
 | IEF | `DGS7` − taux cash |
 | TLT | `DGS20` − taux cash |
 | LQD | `BAMLC0A0CMEY` − taux cash |
@@ -296,7 +295,41 @@ Si dépassé : rescaling uniforme de toutes les positions. Appliqué après le b
 
 ## Bloc 7 — Portefeuille & IDM
 
-*À détailler.*
+**Pourquoi pas Markowitz**
+
+1. Estimation error : poids très sensibles aux espérances de rendement (paramètre le plus bruité).
+2. Instabilité : poids optimaux changent radicalement selon la période → turnover élevé.
+3. Overfitting : backtest Markowitz trop beau car poids calibrés sur les mêmes données.
+
+**Handcrafting hiérarchique — poids provisoires**
+
+Niveau 1 (entre classes) puis niveau 2 (au sein de chaque classe) — égal au sein de chaque niveau.
+
+| Classe | Poids classe | Instruments | Poids instrument |
+|---|---|---|---|
+| Actions US | 20 % | SPY, IWM | 10 % chacun |
+| Actions internationales | 20 % | VGK, EWJ, EEM, EPP, EWC | 4 % chacun |
+| Obligations | 25 % | IEF, TLT, TIP, LQD | 6,25 % chacun |
+| Matières premières | 25 % | GLD, DBC | 12,5 % chacun |
+| Devises | 10 % | UUP | 10 % |
+
+Justification des poids classes : obligations à 25 % (décorrélation avec actions la plus forte
+et stable) ; matières premières à 25 % (protection inflation) ; devises à 10 % (un seul instrument,
+poids réduit pour éviter de surpondérer UUP ; V2 ajoutera des instruments).
+À ajuster au bloc 7 si corrélations intra-classe trop fortes (EEM/EPP notamment).
+
+**IDM**
+
+$$\text{IDM} = \frac{1}{\sqrt{w^\top \Sigma^{\text{instruments}}\, w}}, \quad \text{plafonné à 2,5}$$
+
+où $\Sigma^{\text{instruments}}$ = matrice de corrélation des rendements des sous-systèmes,
+estimée sur fenêtre expansive (pas de bootstrapping global : look-ahead).
+La formule analytique est équivalente au bootstrap sous hypothèse de normalité, sans bruit
+Monte Carlo. Mêmes précautions que FDM : $\rho < 0 \to 0$, lissage EWMA.
+
+**Position finale**
+
+$$N^{\text{final}}_{i,t} = N_{i,t} \times w_i \times \text{IDM}$$
 
 ---
 

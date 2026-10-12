@@ -15,6 +15,13 @@ Liste des notions à approfondir. Cocher quand le concept est maîtrisé.
 - [ ] Effet falaise (ghost effect) : pourquoi l'écart-type simple crée des sauts artificiels.
 - [ ] Mélange 70/30 avec la vol de long terme : intuition et formule.
 
+## Bloc 7 — Portefeuille & IDM
+
+- [ ] Markowitz : pourquoi les poids sont instables (sensibilité aux espérances de rendement, estimation error).
+- [ ] Handcrafting hiérarchique : intuition "budget de risque de haut en bas".
+- [ ] IDM formule analytique = bootstrap sous normalité : pourquoi c'est équivalent et préférable.
+- [ ] IDM vs FDM : même mécanique, niveaux différents (portefeuille vs instrument).
+
 ## Bloc 6 — Position sizing
 
 - [ ] Formule N = Capital × τ × F / (10 × σ_annual × P) : dériver chaque terme depuis le critère "à F=10, vol = τ".
