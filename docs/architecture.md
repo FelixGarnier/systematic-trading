@@ -23,8 +23,8 @@ n'est calculée qu'avec des informations disponibles à la clôture de `t`.
 | 5 | Combinaison & FDM | Validé |
 | 6 | Position sizing | Validé |
 | 7 | Portefeuille & IDM | Validé |
-| 8 | Buffer & coûts | En discussion |
-| 9 | Backtest & évaluation | À faire |
+| 8 | Buffer & coûts | Validé |
+| 9 | Backtest & évaluation | En discussion |
 | 10 | Exécution live & risque | À faire |
 
 ---
@@ -335,7 +335,45 @@ $$N^{\text{final}}_{i,t} = N_{i,t} \times w_i \times \text{IDM}$$
 
 ## Bloc 8 — Buffer & coûts
 
-*À détailler.*
+**Buffer (filtre de décision)**
+
+$$\text{Trader seulement si } \left|\frac{N^{\text{actuel}}_{i,t} - N^*_{i,t}}{N^*_{i,t}}\right| > \delta = 0{,}10$$
+
+Si hors zone : ramener au **bord de la zone** (pas à $N^*$), ce qui réduit le turnover.
+Zone tampon : $\big[N^*_{i,t} \times 0{,}90,\; N^*_{i,t} \times 1{,}10\big]$.
+
+**Ordre des opérations (important)**
+
+Signal → position cible $N^*$ → buffer → position à trader → vérification levier → ordre.
+
+Le buffer doit précéder le contrôle de levier : le rescaling de levier (mécanisme de risque
+global) ne doit pas polluer la décision de signal. Inverser l'ordre ferait déclencher le buffer
+sur des mouvements de rescaling sans changement de signal réel.
+
+**Modèle de coûts**
+
+Coût d'un trade = spread bid-ask ÷ prix. Coût en Sharpe = coût × turnover annuel ÷ σ.
+
+Speed limit de Carver : les coûts de transaction ≤ ⅓ du Sharpe brut attendu de la règle.
+Utilisée pour valider que chaque règle est rentable nette de coûts sur chaque instrument.
+
+Commissions : 0 $ chez Alpaca (ETF US). Paramétrable pour robustesse.
+
+Dividendes payés sur les shorts : implicites dans la formule P&L (r_total négatif si short + dividende).
+
+**Taux de borrow (shorts, valeurs conservatrices)**
+
+| Instrument | Taux annuel |
+|---|---|
+| SPY, IWM | 0,3 % |
+| VGK, EWJ | 0,5 % |
+| EEM, EPP, EWC | 1,5 % |
+| IEF, TLT, TIP, LQD | 0,3 % |
+| GLD | 0,5 % |
+| DBC | 0,8 % |
+| UUP | 0,5 % |
+
+À revérifier à l'implémentation (IB Securities Lending ou équivalent).
 
 ---
 

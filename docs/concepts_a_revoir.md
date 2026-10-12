@@ -15,6 +15,13 @@ Liste des notions à approfondir. Cocher quand le concept est maîtrisé.
 - [ ] Effet falaise (ghost effect) : pourquoi l'écart-type simple crée des sauts artificiels.
 - [ ] Mélange 70/30 avec la vol de long terme : intuition et formule.
 
+## Bloc 8 — Buffer & coûts
+
+- [ ] Speed limit de Carver : comment exprimer un coût de transaction en unités de Sharpe.
+- [ ] Turnover : comment le mesurer (nombre de "rotations" complètes par an).
+- [ ] Pourquoi le buffer précède le contrôle de levier (séparation signal vs risque global).
+- [ ] Taux de borrow : mécanisme économique du short (emprunt de titres, dividendes payés).
+
 ## Bloc 7 — Portefeuille & IDM
 
 - [ ] Markowitz : pourquoi les poids sont instables (sensibilité aux espérances de rendement, estimation error).
