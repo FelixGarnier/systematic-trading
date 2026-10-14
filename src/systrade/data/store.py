@@ -67,6 +67,9 @@ def save_rates(df: pd.DataFrame) -> None:
     """
     Sauvegarde les taux FRED dans clean/rates.parquet.
 
+    Si un fichier existe déjà, l'historique hors de la fenêtre fournie est
+    conservé. Les valeurs de `df` remplacent celles déjà stockées aux mêmes dates.
+
     Paramètres
     ----------
     df :
@@ -75,6 +78,12 @@ def save_rates(df: pd.DataFrame) -> None:
         Les taux sont déjà décalés d'un jour (lag de publication FRED).
     """
     CLEAN_DIR.mkdir(parents=True, exist_ok=True)
+    if RATES_PATH.exists():
+        # Une mise à jour quotidienne n'apporte que les derniers jours.
+        # On garde l'historique déjà stocké ; les nouvelles valeurs gagnent
+        # là où elles se recouvrent.
+        previous = pd.read_parquet(RATES_PATH)
+        df = df.combine_first(previous).sort_index()
     df.to_parquet(RATES_PATH)
 
 
