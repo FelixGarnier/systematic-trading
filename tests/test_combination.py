@@ -14,6 +14,7 @@ from systrade.forecast.combination import (
     TREND_ONLY_TICKERS,
     compute_combination,
     expanding_fdm,
+    fdm_by_instrument,
     fdm_from_corr,
     weighted_average_forecast,
 )
@@ -158,6 +159,36 @@ def test_waf_renorm_for_trend_only():
     avg = weighted_average_forecast(cf, RULE_WEIGHTS_TREND_CARRY)
     # Tous les EWMAC valent `val` → moyenne = val quelle que soit la renorm
     assert avg["GLD"].iloc[0] == pytest.approx(val)
+
+
+def test_waf_nan_rule_does_not_erase_the_others():
+    """Un carry manquant un jour ne doit pas mettre le forecast à NaN."""
+    dates = pd.bdate_range("2024-01-02", periods=2)
+    six = pd.DataFrame({"SPY": [6.0, 6.0]}, index=dates)
+    carry = pd.DataFrame({"SPY": [np.nan, 10.0]}, index=dates)
+    cf = {
+        "EWMAC_8_32": six.copy(),
+        "EWMAC_16_64": six.copy(),
+        "EWMAC_32_128": six.copy(),
+        "carry_medium": carry.copy(),
+        "carry_slow": carry.copy(),
+    }
+    avg = weighted_average_forecast(cf, RULE_WEIGHTS_TREND_CARRY)
+    # Jour 0 : trois EWMAC à 6, carry absent → moyenne = 6
+    assert avg["SPY"].iloc[0] == pytest.approx(6.0)
+    # Jour 1 : 70 % × 6 + 30 % × 10
+    assert avg["SPY"].iloc[1] == pytest.approx(0.7 * 6.0 + 0.3 * 10.0)
+
+
+def test_fdm_by_instrument_switches_when_carry_is_missing():
+    """Sans carry ce jour-là, on utilise le FDM trend-only."""
+    dates = pd.bdate_range("2024-01-02", periods=2)
+    has_carry = pd.DataFrame({"LQD": [False, True]}, index=dates)
+    fdm_tc = pd.Series([1.4, 1.4], index=dates)
+    fdm_to = pd.Series([1.1, 1.1], index=dates)
+    used = fdm_by_instrument(has_carry, fdm_tc, fdm_to)
+    assert used["LQD"].iloc[0] == pytest.approx(1.1)
+    assert used["LQD"].iloc[1] == pytest.approx(1.4)
 
 
 def test_waf_shape():

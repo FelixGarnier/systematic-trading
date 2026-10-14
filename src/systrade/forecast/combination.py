@@ -214,9 +214,12 @@ def weighted_average_forecast(
     Avg_t(instrument) = Σ_i w_i × CF_i_t(instrument).
 
     Gestion des règles manquantes :
-        Pour un instrument sans carry (trend-only), les colonnes carry
-        sont absentes → les poids sont renormalisés sur les règles disponibles.
-        Exemple : w_EWMAC = 0.233 renormalisé à 0.333 (= 1/3 exact).
+        - Colonne absente (instrument trend-only) : poids renormalisés.
+          w_EWMAC = 0.233 devient 0.333.
+        - Valeur NaN à une date (carry pas encore publié, trou de donnée) :
+          cette règle sort de la moyenne ce jour-là, et les poids des règles
+          encore disponibles sont renormalisés. Un trou de carry ne doit pas
+          effacer le signal de tendance.
     """
     available_rules = [r for r in weights if r in capped_forecasts]
     if not available_rules:
@@ -224,7 +227,7 @@ def weighted_average_forecast(
 
     ref_df = capped_forecasts[available_rules[0]]
     all_tickers = list(ref_df.columns)
-    result = pd.DataFrame(0.0, index=ref_df.index, columns=all_tickers, dtype=float)
+    result = pd.DataFrame(np.nan, index=ref_df.index, columns=all_tickers, dtype=float)
 
     for ticker in all_tickers:
         ticker_rules = [
@@ -232,20 +235,58 @@ def weighted_average_forecast(
             if ticker in capped_forecasts[r].columns
         ]
         if not ticker_rules:
-            result[ticker] = float("nan")
             continue
 
-        total_w = sum(weights[r] for r in ticker_rules)
-        ticker_avg = sum(
-            (weights[r] / total_w) * capped_forecasts[r][ticker]
-            for r in ticker_rules
+        panel = pd.DataFrame(
+            {r: capped_forecasts[r][ticker] for r in ticker_rules}
         )
-        result[ticker] = ticker_avg
+        w = pd.Series({r: weights[r] for r in ticker_rules}, dtype=float)
+        w_t = panel.notna().mul(w, axis=1)
+        w_sum = w_t.sum(axis=1)
+        norm = w_t.div(w_sum.where(w_sum > 0), axis=0)
+        result[ticker] = (panel.fillna(0.0) * norm).sum(axis=1).where(w_sum > 0)
 
     return result
 
 
 # ── Point d'entrée principal ──────────────────────────────────────────────────
+
+def fdm_by_instrument(
+    has_carry: pd.DataFrame,
+    fdm_tc: pd.Series,
+    fdm_to: pd.Series,
+) -> pd.DataFrame:
+    """
+    FDM du jour et de l'instrument.
+
+    Si au moins un carry est disponible, on prend le FDM trend+carry.
+    Sinon on prend le FDM trend-only : le FDM le plus haut suppose une
+    diversification que le signal du jour n'a pas.
+    """
+    trend_carry = pd.DataFrame(
+        {col: fdm_tc for col in has_carry.columns},
+        index=has_carry.index,
+    )
+    trend_only = pd.DataFrame(
+        {col: fdm_to for col in has_carry.columns},
+        index=has_carry.index,
+    )
+    return trend_carry.where(has_carry, trend_only)
+
+
+def _has_carry(
+    capped_forecasts: dict[str, pd.DataFrame],
+    tickers: list[str],
+    dates: pd.DatetimeIndex,
+) -> pd.DataFrame:
+    """True là où au moins une règle de carry a une valeur."""
+    carry_rules = [r for r in capped_forecasts if "carry" in r]
+    present = pd.DataFrame(False, index=dates, columns=tickers)
+    for rule in carry_rules:
+        values = capped_forecasts[rule].reindex(index=dates, columns=tickers)
+        present = present | values.notna()
+    return present
+
 
 def compute_combination(
     capped_forecasts: dict[str, pd.DataFrame],
@@ -298,7 +339,15 @@ def compute_combination(
     avg = weighted_average_forecast(capped_forecasts, rule_weights_tc)
 
     # ── Combined forecast par groupe ──────────────────────────────────────────
-    combined_tc = avg[tc_tickers].mul(fdm_tc, axis=0).clip(-cap, cap)
+    # Un instrument trend+carry dont le carry est NaN ce jour-là est scalé
+    # avec le FDM trend-only, pas avec le FDM qui compte sur le carry.
+    if tc_tickers:
+        has_carry = _has_carry(capped_forecasts, tc_tickers, all_dates)
+        fdm_tc_used = fdm_by_instrument(has_carry, fdm_tc, fdm_to)
+        combined_tc = (avg[tc_tickers] * fdm_tc_used).clip(-cap, cap)
+    else:
+        combined_tc = avg.reindex(columns=[])
+
     combined_to = avg[to_tickers].mul(fdm_to, axis=0).clip(-cap, cap)
 
     combined = pd.concat([combined_tc, combined_to], axis=1).reindex(columns=all_tickers)

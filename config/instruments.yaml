@@ -86,7 +86,7 @@ universe:
     rules: [ewmac]             # carry écarté (rendement réel biaisé)
     class_weight: 0.25
     instrument_weight: 0.0625
-    borrow_rate: 0.005
+    borrow_rate: 0.003          # architecture : 0,3 %, comme les autres obligations
 
   LQD:
     name: "Investment Grade Corporate Bond ETF"

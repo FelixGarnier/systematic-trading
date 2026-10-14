@@ -160,3 +160,23 @@ def test_load_rates(patch_paths):
 
     loaded = store.load_rates()
     pd.testing.assert_frame_equal(loaded, rates)
+
+
+def test_save_rates_keeps_history_outside_update_window(patch_paths):
+    """Une mise à jour courte ne doit pas effacer l'historique déjà stocké."""
+    history = pd.DataFrame(
+        {"DTB3": [1.0, 5.0]},
+        index=pd.to_datetime(["2007-01-03", "2024-01-03"]),
+    )
+    store.save_rates(history)
+
+    update = pd.DataFrame(
+        {"DTB3": [5.5], "BAMLC0A0CMEY": [6.0]},
+        index=pd.to_datetime(["2024-01-03"]),
+    )
+    store.save_rates(update)
+
+    loaded = store.load_rates()
+    assert loaded.loc["2007-01-03", "DTB3"] == pytest.approx(1.0)
+    assert loaded.loc["2024-01-03", "DTB3"] == pytest.approx(5.5)
+    assert loaded.loc["2024-01-03", "BAMLC0A0CMEY"] == pytest.approx(6.0)
