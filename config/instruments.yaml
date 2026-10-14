@@ -1,0 +1,160 @@
+# Univers V1 — Systematic Trading Framework
+# Toute modification doit être validée dans docs/architecture.md
+
+universe:
+
+  # ── Actions US ── poids classe : 20 %
+  SPY:
+    name: "S&P 500 ETF"
+    class: equities_us
+    rules: [ewmac, carry]
+    class_weight: 0.20
+    instrument_weight: 0.10    # 20% / 2 instruments
+    borrow_rate: 0.003
+
+  IWM:
+    name: "Russell 2000 ETF"
+    class: equities_us
+    rules: [ewmac, carry]
+    class_weight: 0.20
+    instrument_weight: 0.10
+    borrow_rate: 0.003
+
+  # ── Actions internationales ── poids classe : 20 %
+  VGK:
+    name: "FTSE Europe ETF"
+    class: equities_intl
+    rules: [ewmac, carry]
+    class_weight: 0.20
+    instrument_weight: 0.04    # 20% / 5 instruments
+    borrow_rate: 0.005
+
+  EWJ:
+    name: "MSCI Japan ETF"
+    class: equities_intl
+    rules: [ewmac, carry]
+    class_weight: 0.20
+    instrument_weight: 0.04
+    borrow_rate: 0.005
+
+  EEM:
+    name: "MSCI Emerging Markets ETF"
+    class: equities_intl
+    rules: [ewmac, carry]
+    class_weight: 0.20
+    instrument_weight: 0.04
+    borrow_rate: 0.015
+
+  EPP:
+    name: "MSCI Pacific ex-Japan ETF"
+    class: equities_intl
+    rules: [ewmac, carry]
+    class_weight: 0.20
+    instrument_weight: 0.04
+    borrow_rate: 0.015
+
+  EWC:
+    name: "MSCI Canada ETF"
+    class: equities_intl
+    rules: [ewmac, carry]
+    class_weight: 0.20
+    instrument_weight: 0.04
+    borrow_rate: 0.005
+
+  # ── Obligations ── poids classe : 25 %
+  IEF:
+    name: "7-10 Year Treasury ETF"
+    class: bonds
+    rules: [ewmac, carry]
+    class_weight: 0.25
+    instrument_weight: 0.0625  # 25% / 4 instruments
+    carry_fred_series: "DGS7"
+    borrow_rate: 0.003
+
+  TLT:
+    name: "20+ Year Treasury ETF"
+    class: bonds
+    rules: [ewmac, carry]
+    class_weight: 0.25
+    instrument_weight: 0.0625
+    carry_fred_series: "DGS20"
+    borrow_rate: 0.003
+
+  TIP:
+    name: "TIPS ETF"
+    class: bonds
+    rules: [ewmac]             # carry écarté (rendement réel biaisé)
+    class_weight: 0.25
+    instrument_weight: 0.0625
+    borrow_rate: 0.005
+
+  LQD:
+    name: "Investment Grade Corporate Bond ETF"
+    class: bonds
+    rules: [ewmac, carry]
+    class_weight: 0.25
+    instrument_weight: 0.0625
+    carry_fred_series: "BAMLC0A0CMEY"
+    borrow_rate: 0.003
+
+  # ── Matières premières ── poids classe : 25 %
+  GLD:
+    name: "Gold ETF"
+    class: commodities
+    rules: [ewmac]
+    class_weight: 0.25
+    instrument_weight: 0.125   # 25% / 2 instruments
+    borrow_rate: 0.005
+
+  DBC:
+    name: "Commodity Index ETF"
+    class: commodities
+    rules: [ewmac]
+    class_weight: 0.25
+    instrument_weight: 0.125
+    borrow_rate: 0.008
+
+  # ── Devises ── poids classe : 10 %
+  UUP:
+    name: "USD Index ETF"
+    class: fx
+    rules: [ewmac]
+    class_weight: 0.10
+    instrument_weight: 0.10    # seul instrument de la classe
+    borrow_rate: 0.005
+
+# ── Paramètres globaux ──
+trading:
+  vol_target: 0.13             # volatility target annualisé
+  max_leverage: 2.0            # levier brut maximum
+  margin_alert: 1.5            # seuil d'alerte marge préventive
+  buffer_delta: 0.10           # buffer ± 10% de la position cible
+  circuit_breaker_pct: 0.05    # arrêt si P&L jour < -5% du capital
+  capital: 100_000             # capital de départ (USD)
+  annualisation_factor: 256    # jours de trading (√256 = 16)
+
+# ── Paramètres EWMAC ──
+ewmac:
+  variations:
+    - {fast: 8,  slow: 32,  weight: 0.333}   # poids pour trend-only
+    - {fast: 16, slow: 64,  weight: 0.333}
+    - {fast: 32, slow: 128, weight: 0.333}
+  # poids pour instruments trend+carry (renormalisés)
+  weight_with_carry: 0.2333
+  forecast_cap: 20.0
+
+# ── Paramètres Carry ──
+carry:
+  variations:
+    - {name: medium, ema_span: 5,  weight: 0.150}
+    - {name: slow,   ema_span: 20, weight: 0.150}
+  fred_cash_rate: "DTB3"       # T-bill 3 mois
+
+# ── Paramètres Volatilité ──
+volatility:
+  ewma_span: 35                # span de l'EWMA
+  lt_blend_weight: 0.30        # poids de la vol long terme (30%)
+  lt_window_years: 10          # fenêtre vol long terme
+  floor_percentile: 5          # plancher = 5e percentile sur 500 jours
+  floor_lookback: 500
+  min_observations: 10         # minimum avant de produire une estimation
