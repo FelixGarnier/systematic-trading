@@ -319,6 +319,43 @@ def _stats(result: dict, start: str) -> dict[str, float]:
     return stats
 
 
+def assemble_book(
+    prices_adj: pd.DataFrame,
+    prices_unadj: pd.DataFrame,
+    dividends: pd.DataFrame,
+    rates: pd.DataFrame,
+) -> dict:
+    """
+    Signaux, poids, IDM et actions par dollar de capital.
+
+    C'est le calcul commun au backtest et à la boucle paper. `k` ne dépend
+    pas du capital : N* = capital courant × k, puis buffer et levier.
+    """
+    vol = compute_vol(prices_adj)
+    ewmac = all_ewmac_signals(prices_adj, vol["daily"])
+    carry = all_carry_signals(dividends, prices_unadj, rates, vol["annual"])
+    capped = {
+        name: compute_scaled_capped(signal)["capped"]
+        for name, signal in {**ewmac, **carry}.items()
+    }
+    forecast = compute_combination(capped)["combined"]
+    weights = instrument_weights()
+    sub = subsystem_returns(forecast, prices_adj, vol["daily"])
+    w = active_weights(sub, weights)
+    idm = expanding_idm(sub, weights)
+    k = shares_per_capital(forecast, vol["annual"], prices_unadj, w, idm)
+    return {
+        "vol": vol,
+        "capped": capped,
+        "forecast": forecast,
+        "weights": w,
+        "idm": idm,
+        "shares_per_dollar": k,
+        "borrow": borrow_rates(),
+        "classes": asset_classes(),
+    }
+
+
 def run_backtest(
     prices_adj: pd.DataFrame,
     prices_unadj: pd.DataFrame,
@@ -333,18 +370,14 @@ def run_backtest(
 
     `decompose=False` ne calcule que le livre principal. Utile pour les tests.
     """
-    vol = compute_vol(prices_adj)
-    ewmac = all_ewmac_signals(prices_adj, vol["daily"])
-    carry = all_carry_signals(dividends, prices_unadj, rates, vol["annual"])
-    capped = {
-        name: compute_scaled_capped(signal)["capped"]
-        for name, signal in {**ewmac, **carry}.items()
-    }
-    forecast = compute_combination(capped)["combined"]
+    assembled = assemble_book(prices_adj, prices_unadj, dividends, rates)
+    vol = assembled["vol"]
+    forecast = assembled["forecast"]
+    capped = assembled["capped"]
 
     weights = instrument_weights()
-    borrow = borrow_rates()
-    classes = asset_classes()
+    borrow = assembled["borrow"]
+    classes = assembled["classes"]
     common = dict(
         prices_adj=prices_adj,
         prices_unadj=prices_unadj,
@@ -355,7 +388,16 @@ def run_backtest(
         capital0=capital0,
     )
 
-    strategy = backtest_from_forecast(forecast, **common)
+    cols = assembled["shares_per_dollar"].columns
+    strategy = simulate(
+        assembled["shares_per_dollar"],
+        prices_unadj,
+        prices_adj.reindex(columns=cols).pct_change(),
+        capital0=capital0,
+        rates=borrow,
+    )
+    strategy["idm"] = assembled["idm"]
+    strategy["weights"] = assembled["weights"]
     strategy_stats = _stats(strategy, eval_start)
 
     bench_returns = {

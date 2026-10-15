@@ -26,6 +26,7 @@ config/secrets.yaml
 # Data (heavy, regenerable)
 data/raw/
 data/clean/
+data/live/
 *.parquet
 *.h5
 *.hdf5

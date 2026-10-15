@@ -55,12 +55,20 @@ def save_raw(df: pd.DataFrame, ticker: str) -> None:
 
     Garantie
     --------
-    Écrase le fichier existant. La couche raw est immuable par convention :
-    on ne modifie jamais les données après les avoir sauvegardées ici.
-    Appeler build_clean_layers() après pour mettre à jour la couche clean.
+    Une mise à jour courte ne remplace pas l'historique. Les lignes de `df`
+    gagnent en cas de chevauchement. Appeler build_clean_layers() ensuite.
     """
     RAW_DIR.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(raw_path(ticker))
+    path = raw_path(ticker)
+    incoming = df.sort_index()
+    if incoming.index.tz is not None:
+        incoming.index = incoming.index.tz_localize(None)
+    if path.exists():
+        previous = pd.read_parquet(path)
+        if previous.index.tz is not None:
+            previous.index = previous.index.tz_localize(None)
+        incoming = incoming.combine_first(previous).sort_index()
+    incoming.to_parquet(path)
 
 
 def save_rates(df: pd.DataFrame) -> None:
