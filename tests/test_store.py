@@ -64,6 +64,18 @@ def test_save_raw_creates_file(patch_paths, sample_raw_df):
     assert (patch_paths["raw"] / "SPY_raw.parquet").exists()
 
 
+def test_save_raw_keeps_history_outside_update_window(patch_paths, sample_raw_df):
+    """Une mise à jour de quelques jours ne doit pas effacer l'historique."""
+    store.save_raw(sample_raw_df, "SPY")
+    update = sample_raw_df.iloc[-1:].copy()
+    update.iloc[0, update.columns.get_loc("close")] = 500.0
+    store.save_raw(update, "SPY")
+    loaded = pd.read_parquet(store.raw_path("SPY"))
+    assert len(loaded) == len(sample_raw_df)
+    assert loaded.iloc[0]["close"] == pytest.approx(470.0)
+    assert loaded.iloc[-1]["close"] == pytest.approx(500.0)
+
+
 def test_save_raw_roundtrip(patch_paths, sample_raw_df):
     """Les données sauvegardées doivent être identiques après relecture."""
     store.save_raw(sample_raw_df, "SPY")

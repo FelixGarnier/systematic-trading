@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Le cadre de Carver sur un univers d'ETF — Felix Garnier</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0 auto;
+    max-width: 760px;
+    padding: 48px 28px 80px;
+    color: #1c1915;
+    background: #f7f4ee;
+    font: 17px/1.55 "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
+  }
+  header { border-bottom: 1px solid #1c1915; padding-bottom: 18px; margin-bottom: 28px; }
+  h1 { font-size: 30px; line-height: 1.2; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.02em; }
+  .byline { margin: 0; color: #4a453d; font-size: 15px; }
+  h2 { font-size: 20px; margin: 36px 0 10px; font-weight: 600; }
+  p { margin: 0 0 12px; }
+  .abstract {
+    background: #fff;
+    border: 1px solid #e4ddd2;
+    padding: 14px 16px;
+    margin: 0 0 8px;
+    font-size: 15.5px;
+  }
+  .abstract strong { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 15px; background: #fff; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid #e4ddd2; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-weight: 600; border-bottom: 1px solid #1c1915; }
+  caption { caption-side: bottom; text-align: left; color: #4a453d; font-size: 13px; padding-top: 6px; }
+  figure { margin: 18px 0; }
+  img { width: 100%; height: auto; background: #fff; border: 1px solid #e4ddd2; }
+  figcaption { color: #4a453d; font-size: 13px; margin-top: 6px; }
+  code, pre { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  pre { background: #fff; border: 1px solid #e4ddd2; padding: 12px 14px; overflow-x: auto; }
+  a { color: #1c1915; }
+  @media print {
+    body { background: #fff; max-width: none; padding: 0; font-size: 11.5pt; }
+    .abstract, table, pre, img { border-color: #ccc; }
+    a { text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Le cadre de Carver sur un univers d'ETF</h1>
+  <p class="byline">Implémentation pré-enregistrée, backtest janvier 2009 – octobre 2026, et passage en paper trading.<br>Felix Garnier · 15 octobre 2026</p>
+</header>
+
+<p class="abstract"><strong>Abstract.</strong> This note reports a pre-registered implementation of Robert Carver's systematic trading framework — EWMAC trend, carry, forecast scaling and capping, handcrafted weights, an instrument diversification multiplier, a no-trade buffer, and a 13% volatility target — on fourteen US ETFs. No parameter was changed after the results were seen. From January 2009 to 13 October 2026 the strategy has a Sharpe ratio of 0.41, a CAGR of 4.1% and a maximum drawdown of −29.9%. SPY, a daily-rebalanced 60/40, and a long-only book run through the same engine at a constant forecast of +10 have Sharpe ratios of 0.88, 0.99 and 1.00. The signals subtract value relative to always being long. Transaction costs and the close-to-close fill do not account for the gap. The result is kept as a documented rejection on this universe. An Alpaca paper-trading loop runs the same calculation without retuning it.</p>
+
+<h2>1. Question</h2>
+<p>Le cadre de Robert Carver (<em>Systematic Trading</em>, <em>Advanced Futures Trading Strategies</em>) combine une tendance lente, un carry, une cible de volatilité et un filtre de turnover. Il a été écrit pour des futures. Cette note mesure ce que devient ce cadre, sans modification après coup, sur un univers d'ETF américains que l'on peut porter en paper trading.</p>
+<p>La question est fermée avant le calcul des performances : à paramètres figés, les signaux ajoutent-ils quelque chose à une position toujours longue, au même risque, dans le même moteur ?</p>
+
+<h2>2. Design verrouillé</h2>
+<p>L'univers compte quatorze ETF, choisis en 2026 parmi des fonds encore cotés. Actions américaines : SPY, IWM. Actions internationales : VGK, EWJ, EEM, EPP, EWC. Obligations : IEF, TLT, TIP, LQD. Matières premières : GLD, DBC. Devises : UUP. SHY a été retiré avant le backtest : sa volatilité, proche de 1,5&nbsp;% par an, est incompatible avec un plafond de levier à 2×. TIP est en tendance seule : son carry, construit sur un rendement réel, est structurellement biaisé sur 2011–2022.</p>
+<p>Les règles de tendance sont trois EWMAC, fenêtres 8/32, 16/64 et 32/128. Le carry des actions est le rendement de dividende sur douze mois moins le T-bill trois mois. Le carry des obligations utilise un proxy FRED (DGS7 pour IEF, DGS20 pour TLT, BAMLC0A0CMEY pour LQD). GLD, DBC, UUP et TIP n'ont pas de carry. Les taux FRED sont décalés d'un jour : à la date <em>t</em>, on n'utilise que ce qui était publié.</p>
+<p>La volatilité est une EWMA de span 35, mélangée à 70/30 avec sa moyenne longue, puis bornée par un plancher estimé sur le passé seul. Chaque signal est mis à l'échelle pour que sa valeur absolue moyenne vaille 10, puis écrêté à ±20. La combinaison renormalise les poids quand une règle manque. Le multiplicateur de diversification (FDM au niveau des règles, IDM au niveau des instruments) vaut 1&nbsp;/&nbsp;√(w′Σw), avec les corrélations négatives ramenées à 0 et un plafond à 2,5. Les poids d'instruments sont handcraftés : 20&nbsp;% actions US, 20&nbsp;% actions internationales, 25&nbsp;% obligations, 25&nbsp;% matières premières, 10&nbsp;% devises.</p>
+<p>La position cible, avant buffer et avant levier, est</p>
+<p>N* = Capital × 0,13 × F × w × IDM&nbsp;/&nbsp;(10 × σ × P)</p>
+<p>où F est le forecast combiné, σ la volatilité annualisée et P le prix non ajusté. Le capital est celui du jour. Le buffer de 10&nbsp;% ne trade que si la position sort de la bande autour de N*, et il ramène au bord de la bande. Le levier brut est plafonné à 2× après le buffer. Les coûts sont un spread de 2 points de base multiplié par 1,5, plus le borrow des shorts. Les commissions sont nulles, comme sur les ETF US chez Alpaca.</p>
+<p>Aucun de ces choix n'a été revu après lecture des performances.</p>
+
+<h2>3. Protocole</h2>
+<p>Les prix viennent de Tiingo (clôture, clôture ajustée, dividendes). Les fichiers n'ont pas d'ouverture. La position fixée à la clôture <em>t</em> gagne donc le rendement total clôture-à-clôture jusqu'à <em>t+1</em>, dividendes inclus. Un passage d'ordre à l'ouverture du lendemain laisserait passer le gap de la nuit. Le backtest est, sur ce point, légèrement favorable à la stratégie.</p>
+<p>La chauffe commence en janvier 2007. Les métriques commencent le 2 janvier 2009, une fois la volatilité, les scalaires et les corrélations estimables. 2008 reste dans la chauffe. Le Sharpe est √256&nbsp;×&nbsp;μ&nbsp;/&nbsp;σ, avec un écart-type échantillon. Le Calmar reporté par le projet est Sharpe&nbsp;/&nbsp;|drawdown maximum|. Le Calmar usuel, CAGR&nbsp;/&nbsp;|drawdown maximum|, est donné à côté.</p>
+<p>Quatre fenêtres sont lues sans réestimer aucun paramètre : 2009–2011, 2012–2016, 2017–2021, 2022–octobre 2026. Trois références partagent le même calendrier : SPY en buy-and-hold, un 60/40 SPY/IEF rééquilibré chaque jour sans coût, et un livre long-only passé dans le même moteur avec un forecast constant de +10.</p>
+<p>Le code compte 244 tests. Les scalaires, le FDM, l'IDM, le buffer et le plafond de levier sont des fenêtres expansives ou des décalages d'un jour : une grandeur en <em>t</em> n'utilise pas <em>t+1</em>.</p>
+
+<h2>4. Résultats</h2>
+<p>Fenêtre du 2 janvier 2009 au 13 octobre 2026, 4&nbsp;472 séances.</p>
+<table>
+  <caption>Tableau 1. Stratégie et références, mêmes dates.</caption>
+  <thead><tr><th>Livre</th><th>Sharpe</th><th>CAGR</th><th>Volatilité</th><th>Drawdown max</th></tr></thead>
+  <tbody>
+    <tr><td>Stratégie</td><td>0,41</td><td>4,1&nbsp;%</td><td>11,6&nbsp;%</td><td>−29,9&nbsp;%</td></tr>
+    <tr><td>SPY</td><td>0,88</td><td>15,2&nbsp;%</td><td>17,9&nbsp;%</td><td>−33,7&nbsp;%</td></tr>
+    <tr><td>60/40</td><td>0,99</td><td>10,2&nbsp;%</td><td>10,4&nbsp;%</td><td>−21,0&nbsp;%</td></tr>
+    <tr><td>Long-only, forecast +10</td><td>1,00</td><td>10,1&nbsp;%</td><td>10,2&nbsp;%</td><td>−19,8&nbsp;%</td></tr>
+  </tbody>
+</table>
+<p>La stratégie a un skewness de −0,58 et un hit rate de 53,7&nbsp;%. Le levier brut moyen est de 1,72×, le maximum de 2,00×. Le turnover est de 24,1 fois le capital par an. Le coût de transaction, exprimé en Sharpe, vaut 0,063. La limite de vitesse retenue dans l'architecture, un tiers d'un Sharpe espéré de 0,5, vaut 0,167. Le Calmar du projet vaut 1,37. Le Calmar usuel vaut 0,14.</p>
+<p>Le chemin de capital part de 100&nbsp;000&nbsp;$ le 3 janvier 2007, chauffe comprise, et finit à 227&nbsp;345&nbsp;$ le 13 octobre 2026. Le CAGR de 4,1&nbsp;% est celui de la fenêtre 2009–2026.</p>
+
+<figure>
+  <img src="equity_drawdown.png" alt="Courbe de capital et drawdown de la stratégie et des références">
+  <figcaption>Figure 1. Capital et drawdown, fenêtre d'évaluation à partir de janvier 2009.</figcaption>
+</figure>
+
+<table>
+  <caption>Tableau 2. Walk-forward, aucun paramètre réestimé.</caption>
+  <thead><tr><th>Fenêtre</th><th>Sharpe</th><th>CAGR</th><th>Drawdown max</th></tr></thead>
+  <tbody>
+    <tr><td>2009–2011</td><td>0,45</td><td>5,2&nbsp;%</td><td>−10,1&nbsp;%</td></tr>
+    <tr><td>2012–2016</td><td>0,41</td><td>3,6&nbsp;%</td><td>−12,3&nbsp;%</td></tr>
+    <tr><td>2017–2021</td><td>0,77</td><td>8,2&nbsp;%</td><td>−11,7&nbsp;%</td></tr>
+    <tr><td>2022–2026</td><td>0,06</td><td>−0,1&nbsp;%</td><td>−29,9&nbsp;%</td></tr>
+  </tbody>
+</table>
+<figure>
+  <img src="walk_forward.png" alt="Sharpe par fenêtre walk-forward">
+  <figcaption>Figure 2. Sharpe par fenêtre. La quatrième fenêtre porte le drawdown de l'échantillon.</figcaption>
+</figure>
+
+<table>
+  <caption>Tableau 3. Chaque règle, seule, dans le même moteur.</caption>
+  <thead><tr><th>Règle</th><th>Sharpe</th><th>Turnover</th><th>Drawdown max</th></tr></thead>
+  <tbody>
+    <tr><td>EWMAC 8/32</td><td>0,05</td><td>44×</td><td>−28,1&nbsp;%</td></tr>
+    <tr><td>EWMAC 16/64</td><td>0,34</td><td>23×</td><td>−28,7&nbsp;%</td></tr>
+    <tr><td>EWMAC 32/128</td><td>0,49</td><td>13×</td><td>−29,8&nbsp;%</td></tr>
+    <tr><td>Carry rapide (span 5)</td><td>0,18</td><td>3,7×</td><td>−56,8&nbsp;%</td></tr>
+    <tr><td>Carry lent (span 20)</td><td>0,17</td><td>2,6×</td><td>−58,7&nbsp;%</td></tr>
+  </tbody>
+</table>
+
+<table>
+  <caption>Tableau 4. Sharpe de la contribution au P&amp;L du portefeuille, pas un livre séparé.</caption>
+  <thead><tr><th>Classe</th><th>Sharpe de contribution</th></tr></thead>
+  <tbody>
+    <tr><td>Matières premières</td><td>0,45</td></tr>
+    <tr><td>Obligations</td><td>0,35</td></tr>
+    <tr><td>Devises</td><td>0,19</td></tr>
+    <tr><td>Actions US</td><td>0,14</td></tr>
+    <tr><td>Actions internationales</td><td>−0,09</td></tr>
+  </tbody>
+</table>
+<p>Le livre long-only, dans le même moteur, tourne 2,1 fois le capital par an. Son coût en Sharpe vaut 0,006.</p>
+
+<h2>5. Lecture</h2>
+<p>Le fait qui tranche est l'écart entre la stratégie (Sharpe 0,41) et le livre à forecast constant +10 (Sharpe 1,00). Les deux partagent l'univers, les poids, l'IDM, le buffer, le plafond de levier et les coûts. Ce qui change, c'est le forecast. Sur cet échantillon, les signaux retirent de la performance à une position toujours longue.</p>
+<p>Les coûts n'expliquent pas cet écart. L'écart de coût en Sharpe entre les deux livres est d'environ 0,06, quand l'écart de Sharpe réalisé est d'environ 0,6. Le fill clôture-à-clôture est légèrement favorable à la stratégie : il laisse à la position le gap de la nuit qu'un ordre à l'ouverture manquerait.</p>
+<p>La tendance la plus rapide est presque nulle, et elle est la plus chère. La tendance la plus lente porte l'essentiel de ce que la tendance apporte. Le carry ETF, construit sur un dividende ou un rendement obligataire moins le cash, reste faible : son drawdown seul dépasse −55&nbsp;%. Le carry qui équilibre la tendance, dans le livre de Carver, est celui des courbes de futures.</p>
+<p>La quatrième fenêtre concentre le drawdown. De 2022 à 2026, la hausse des taux et le marché actions haussier forment un mauvais terrain pour un livre qui peut être short les actions et long la duration. Les trois fenêtres précédentes, positives et du même ordre, montrent que le résultat global n'est pas le produit d'une seule année aberrante en début d'échantillon.</p>
+<p>L'univers est choisi en 2026 parmi des ETF encore listés. Les fonds fermés entre 2007 et 2026 n'y figurent pas. Ce biais de survie avantagerait plutôt les instruments retenus.</p>
+<p>Les fenêtres, les poids, la cible de volatilité et l'univers restent ceux du design. Un second passage après ce tableau mesurerait la capacité à ajuster, pas la méthode.</p>
+
+<h2>6. Paper trading</h2>
+<p>Le backtest répond à la question de recherche. La boucle paper répond à une question d'ingénierie : le même calcul peut-il produire, chaque soir, une liste d'ordres traçable, sans être retouché.</p>
+<p>Le courtier est Alpaca, compte paper uniquement, derrière une interface. Les clôtures restent celles de Tiingo. Alpaca sert aux cotations et aux ordres.</p>
+<p>Chaque soir, après la clôture, la boucle met à jour les prix et les taux, recalcule le livre sur tout l'historique, taille les positions sur l'equity du compte paper, applique le buffer puis le plafond à 2×, arrondit à l'action entière, et écrit le plan dans SQLite (<code>data/live/trading.db</code>). Elle n'envoie rien. Le lendemain, à l'ouverture, les achats partent en limite au bid et les ventes en limite à l'ask. Un ordre non exécuté est re-peg toutes les cinq minutes, puis passé en market au bout de trente minutes.</p>
+<p>Trois contrôles sont propres au paper. Si le P&amp;L du jour passe sous −5&nbsp;% du capital, aucun ordre nouveau ne part. Si le levier déjà détenu dépasse 1,5×, les ordres qui augmentent l'exposition sont bloqués et les réductions passent. Un ordre est écrêté à 1&nbsp;% de l'ADV quand ce volume est connu. Le buffer mémorise la position d'avant levier, en actions fractionnaires, pour qu'un simple rescaling de levier ne relance pas un trade.</p>
+<p>Cette boucle valide le pipeline. Le livre paper est celui des signaux. Le dimensionnement suit l'equity du compte, et le buffer part de zéro le premier soir : les premières séances ne reproduisent pas le chemin 2007–2026.</p>
+<p>Un compte paper plat de 100&nbsp;000&nbsp;$, calculé sur la clôture du 13 octobre 2026, demande quatorze ordres et sort au plafond de 2×. L'IDM du jour vaut 1,91. UUP, forecast au plafond de +20 et volatilité faible, représente l'essentiel du notionnel : c'est le vol targeting sur un ETF peu volatil, ramené par le plafond.</p>
+<table>
+  <caption>Tableau 5. Livre cible d'un compte plat de 100&nbsp;000&nbsp;$ le 13 octobre 2026. Dry-run, aucun ordre envoyé.</caption>
+  <thead><tr><th>Instrument</th><th>Forecast</th><th>Actions cibles</th></tr></thead>
+  <tbody>
+    <tr><td>UUP</td><td>+20,0</td><td>+1&nbsp;863</td></tr>
+    <tr><td>DBC</td><td>+18,4</td><td>+604</td></tr>
+    <tr><td>EWJ</td><td>+7,3</td><td>+27</td></tr>
+    <tr><td>SPY</td><td>+2,9</td><td>+5</td></tr>
+    <tr><td>EEM</td><td>−1,5</td><td>−7</td></tr>
+    <tr><td>EPP</td><td>−5,9</td><td>−46</td></tr>
+    <tr><td>LQD</td><td>−7,9</td><td>−117</td></tr>
+    <tr><td>EWC</td><td>−8,8</td><td>−60</td></tr>
+    <tr><td>GLD</td><td>−9,1</td><td>−23</td></tr>
+    <tr><td>VGK</td><td>−11,5</td><td>−59</td></tr>
+    <tr><td>IEF</td><td>−11,8</td><td>−225</td></tr>
+    <tr><td>TLT</td><td>−13,1</td><td>−145</td></tr>
+    <tr><td>IWM</td><td>−14,2</td><td>−48</td></tr>
+    <tr><td>TIP</td><td>−19,3</td><td>−401</td></tr>
+  </tbody>
+</table>
+<p>La boucle est lancée toutes les cinq minutes par un agent macOS (<code>python -m systrade.execution tick</code>), à l'heure de New York. À la main, les mêmes étapes sont :</p>
+<pre>pip install -e ".[live]"
+python -m systrade.execution close --dry-run
+python -m systrade.execution close          # soir, après 16h30 ET
+python -m systrade.execution open           # ouverture du lendemain
+python -m systrade.execution work           # re-peg, puis market</pre>
+<p>Le dry-run n'appelle pas Alpaca. La boucle réelle ne parle qu'au compte paper.</p>
+
+<h2>7. Hors périmètre</h2>
+<p>Les futures de volatilité, le carry de courbe sur les matières premières, le carry de devises par différentiel de taux, le passage à Interactive Brokers, et les règles breakout et accélération restent dans le backlog. Ils demandent un autre courtier, un module de roll et un historique de courbes. Les ajouter après ce tableau, pour faire remonter le Sharpe, casserait le protocole. Ils décrivent le terrain sur lequel le cadre a été écrit.</p>
+
+<h2>8. Conclusion</h2>
+<p>Sur quatorze ETF américains, de 2009 à octobre 2026, une implémentation pré-enregistrée du cadre de Carver gagne 4,1&nbsp;% par an pour un Sharpe de 0,41. Elle reste sous SPY, sous un 60/40, et sous le même moteur privé de ses signaux. Le résultat tient à l'univers et à la forme du carry. La boucle paper reprend ce calcul tel quel.</p>
+<p>Tearsheet QuantStats : <a href="tearsheet.html">reports/tearsheet.html</a>. Version markdown : <a href="../docs/research_note.md">docs/research_note.md</a>.</p>
+</body>
+</html>
