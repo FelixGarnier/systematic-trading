@@ -20,6 +20,14 @@ from systrade.execution.broker import BrokerInterface
 from systrade.execution.types import Account, BrokerOrder, Order, Quote
 
 
+def signed_position_qty(qty: float, side: str) -> int:
+    """Quantité signée. Un short Alpaca est déjà négatif, ou seulement marqué short."""
+    shares = int(float(qty))
+    if "short" in str(side).lower() and shares > 0:
+        return -shares
+    return shares
+
+
 class AlpacaBroker(BrokerInterface):
     def __init__(self, api_key: str | None = None, secret_key: str | None = None) -> None:
         load_dotenv()
@@ -49,9 +57,7 @@ class AlpacaBroker(BrokerInterface):
     def get_positions(self) -> dict[str, int]:
         out: dict[str, int] = {}
         for pos in self._trading.get_all_positions():
-            qty = int(float(pos.qty))
-            side = str(getattr(pos, "side", "")).lower()
-            signed = -qty if "short" in side else qty
+            signed = signed_position_qty(pos.qty, getattr(pos, "side", ""))
             if signed != 0:
                 out[str(pos.symbol)] = signed
         return out
