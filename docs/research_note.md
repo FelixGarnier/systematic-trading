@@ -5,6 +5,8 @@ Implémentation pré-enregistrée, backtest 2009–2026, et passage en paper tra
 Felix Garnier  
 15 octobre 2026
 
+**Correction, October 2026.** The English README now charges the lagged T-bill on cash. That is an omitted cost, not a retune. With it, the strategy Sharpe is 0.44 and the long-only control 0.87. The loss is 2023 (−8.1%) and 2024 (−5.5%), not 2022 (+7.6%). The slow equity carry is negative almost every day from 2023.
+
 **English abstract.** This note reports a pre-registered implementation of Robert Carver's systematic trading framework (EWMAC trend, carry, forecast scaling and capping, handcrafted weights, instrument diversification multiplier, a no-trade buffer, and a 13% volatility target) on fourteen US ETFs. No parameter was changed after the results were seen. From January 2009 to October 2026 the strategy has a Sharpe ratio of 0.41, a CAGR of 4.1%, and a maximum drawdown of −29.9%. Over the same window, SPY, a daily-rebalanced 60/40, and a long-only book run through the same engine at a constant forecast of +10 have Sharpe ratios of 0.88, 0.99, and 1.00. The signals subtract value relative to always being long. Costs and the close-to-close fill do not explain the gap. The result is kept as a documented rejection on this universe. A paper-trading loop on Alpaca runs the same calculation without retuning it.
 
 ---

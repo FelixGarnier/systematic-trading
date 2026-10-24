@@ -52,6 +52,34 @@ def test_trade_cost_is_paid_when_the_position_is_opened():
     assert result["capital"].iloc[0] == pytest.approx(99_990.0)
 
 
+def test_levered_long_pays_the_tbill_on_the_debit():
+    """Le cash résiduel négatif paie le T-bill. Le jour 0 est plat, donc sans débit."""
+    prices, returns = _market([100.0, 100.0], [0.0, 0.0])
+    k = pd.DataFrame({"SPY": [0.02, 0.02]}, index=prices.index)
+    rf = pd.Series(0.05, index=prices.index)
+    result = simulate(
+        k, prices, returns, capital0=100_000.0, delta=0.0, spread=0.0, rates={}, funding=rf
+    )
+    held = result["positions"]["SPY"].iloc[0]
+    cash = result["capital_start"].iloc[1] - held * 100.0
+    assert cash < 0.0
+    assert result["funding"].iloc[1] == pytest.approx(cash * 0.05 / 256)
+
+
+def test_short_cash_earns_the_tbill():
+    prices, returns = _market([100.0, 100.0], [0.0, 0.0])
+    k = pd.DataFrame({"SPY": [-0.01, -0.01]}, index=prices.index)
+    rf = pd.Series(0.05, index=prices.index)
+    result = simulate(
+        k, prices, returns, capital0=100_000.0, delta=0.0, spread=0.0, rates={}, funding=rf
+    )
+    held = result["positions"]["SPY"].iloc[0]
+    cash = result["capital_start"].iloc[1] - held * 100.0
+    assert cash > result["capital_start"].iloc[1]
+    assert result["funding"].iloc[1] == pytest.approx(cash * 0.05 / 256)
+    assert result["funding"].iloc[1] > 0.0
+
+
 def test_borrow_is_charged_on_the_short_held_overnight():
     prices, returns = _market([100.0, 100.0], [0.0, 0.0])
     k = pd.DataFrame({"SPY": [-0.0001, -0.0001]}, index=prices.index)

@@ -1,8 +1,8 @@
 # Trend following and carry on US ETFs
 
-A pre-registered implementation of the Carver framework on fourteen liquid US ETFs, from 2 January 2009 to 13 October 2026. The design, the rules, and the portfolio weights were fixed before the first performance number. Nothing was retuned afterwards.
+The Carver framework on fourteen liquid US ETFs, from 2 January 2009 to 13 October 2026. The rules, the weights, and the volatility target were frozen before the first performance number. Nothing was retuned afterwards.
 
-The strategy has an annualised Sharpe ratio of 0.41 and a CAGR of 4.1%. SPY, over the same window, has 0.88 and 15.2%. A daily-rebalanced 60/40 has 0.99. A long-only book run through the same engine, at the same 13% volatility target and a constant forecast of +10, has 1.00. Transaction costs take about 0.06 of Sharpe, inside the speed limit of 0.17. The gap is the signals. The long-only book is the control: same universe, same costs, same sizing, no trend and no carry.
+The published result is a Sharpe of 0.41 and a CAGR of 4.1%. The long-only control in the same engine, constant forecast +10, has 1.00. SPY has 0.88. A daily-rebalanced 60/40 has 0.99. The signals trail the always-long book by 0.59 of Sharpe. Costs of spread and stock-borrow take about 0.06, inside the speed limit of 0.17.
 
 The printable note is [`docs/research_paper.pdf`](docs/research_paper.pdf). A French version is [`docs/research_note.md`](docs/research_note.md).
 
@@ -20,9 +20,11 @@ Volatility is an EWMA of daily returns, span 35, blended 70/30 with its ten-year
 
 $w$ are handcrafted class weights: 20% US equities (SPY, IWM), 20% international equities (VGK, EWJ, EEM, EPP, EWC), 25% bonds (IEF, TLT, TIP, LQD), 25% commodities (GLD, DBC), 10% FX (UUP). The instrument diversification multiplier is $1/\sqrt{w'\Sigma w}$, with negative correlations set to zero and a cap of 2.5. It is estimated on an expanding window.
 
-A forecast at the close of day $t$ earns the next close-to-close total return, including dividends. There is no open in the price files, so the backtest does not pretend to trade the next open. A no-trade band of 10% around the target suppresses small trades. Gross leverage is then capped at 2. Costs are half-spread times 1.5, plus borrow on shorts. Commission is zero.
+A forecast at the close of day $t$ earns the next close-to-close total return, including dividends. There is no open in the price files, so the backtest does not pretend to trade the next open. A no-trade band of 10% around the target suppresses small trades. Gross leverage is then capped at 2. Trading costs are half-spread times 1.5, plus stock-borrow on shorts. Commission is zero. Cash left by the positions earns, or pays, the lagged three-month T-bill: a debit pays it, and short proceeds earn it. The rate on the books at date $t$ is the rate already shifted by one day in the data.
 
 ## Result
+
+The table is the one published with the note. Spread and stock-borrow are in. The T-bill on cash is not. That omission is corrected in the next section, and the first numbers stay.
 
 | Book | Sharpe | CAGR | Volatility | Max drawdown |
 |---|---:|---:|---:|---:|
@@ -31,11 +33,11 @@ A forecast at the close of day $t$ earns the next close-to-close total return, i
 | 60/40 | 0.99 | 10.2% | 10.4% | −21.0% |
 | Long-only, forecast +10 | 1.00 | 10.1% | 10.2% | −19.8% |
 
-The strategy turns over 24 times a year. The long-only book turns over 2.1 times. Both are costed in the same engine. The long-only Sharpe net of costs is still about 0.99.
+Compounding 4.1% from 2009 reaches about 202,000 dollars. The path that ends near 226,000 dollars starts in January 2007, warmup included.
 
-![Equity and drawdown of the strategy against SPY, the 60/40, and the long-only control](reports/equity_drawdown.png)
+![Equity and drawdown of the published book, before the cash correction](reports/equity_drawdown.png)
 
-Four walk-forward blocks, with no refit. The sample starts in 2009 after two years of warmup. 2008 is not in the first block.
+Four blocks, no refit. They are subperiods, not a second estimation. The label "2009–2012" ends on 31 December 2011.
 
 | Block | Sharpe | CAGR | Max drawdown |
 |---|---:|---:|---:|
@@ -44,17 +46,61 @@ Four walk-forward blocks, with no refit. The sample starts in 2009 after two yea
 | 2017–2021 | 0.77 | 8.2% | −11.7% |
 | 2022–2026 | 0.06 | −0.1% | −29.9% |
 
-![Walk-forward Sharpe by block](reports/walk_forward.png)
+![Sharpe of the four published blocks](reports/walk_forward.png)
 
-Taken one rule at a time, the slow trend carries the forecast. EWMAC 32/128 has a standalone Sharpe of 0.49 and turns over 13 times a year. EWMAC 16/64 has 0.34. EWMAC 8/32 has 0.05 and turns over 44 times. The two carry rules have Sharpes of 0.18 and 0.17, and maximum drawdowns past −55%. On this universe the fast trend and the ETF carry proxy do not pay for the turnover they generate.
+The slow trend, as its own book, has a Sharpe of 0.49. The fast trend has 0.05. The two carry books have 0.18 and 0.17. These are separate books. The difference 0.49 − 0.41 is not the cost of adding carry to the combined book. The slow trend is already half a Sharpe below the long-only control, so carry is not the gap.
 
-Inside the combined book, commodities, bonds, FX and US equities contribute a positive Sharpe. International equities are the negative contribution. These are shares of the portfolio P&L, not standalone sleeves.
+## Cash financing
+
+Added after the note, without changing a rule, a weight, or the volatility target. Cash left by the positions earns or pays the lagged three-month T-bill. A debit pays it. Short proceeds earn it. SPY and the 60/40 are unlevered, so their total-return Sharpe is unchanged. The excess column subtracts the T-bill as well.
+
+The sample here runs to 23 October 2026, ten days past the published window. The comparison with the table above is the financing, not those ten days.
+
+| Book | Total Sharpe | Excess Sharpe | CAGR | Volatility | Max drawdown |
+|---|---:|---:|---:|---:|---:|
+| Strategy | 0.44 | 0.31 | 4.5% | 11.5% | −25.1% |
+| Long-only, forecast +10 | 0.87 | 0.73 | 8.7% | 10.2% | −20.3% |
+| SPY | 0.87 | 0.80 | 15.0% | 17.8% | −33.7% |
+| 60/40 | 0.99 | 0.85 | 10.2% | 10.4% | −21.0% |
+
+The control falls from 1.00 to 0.87 because it was borrowing without paying. The strategy moves from 0.41 to 0.44. The gap narrows from 0.59 to 0.43. It does not close.
+
+![Equity and drawdown once cash pays or earns the T-bill](reports/equity_financed.png)
+
+Annual total returns of this financed book. This cut was not in the first note. It is a finer presentation of the same rules.
+
+| Year | Strategy | Long-only | SPY |
+|---|---:|---:|---:|
+| 2009 | 2.3% | 15.2% | 26.4% |
+| 2010 | 8.7% | 21.2% | 15.1% |
+| 2011 | 4.4% | 9.3% | 1.9% |
+| 2012 | −0.9% | 12.0% | 16.0% |
+| 2013 | 6.9% | −2.6% | 32.3% |
+| 2014 | 10.5% | 6.0% | 13.5% |
+| 2015 | −4.4% | −8.7% | 1.3% |
+| 2016 | 6.4% | 14.0% | 12.0% |
+| 2017 | 6.2% | 15.6% | 21.7% |
+| 2018 | 4.8% | −7.5% | −4.6% |
+| 2019 | 7.5% | 26.5% | 31.2% |
+| 2020 | 15.1% | 9.4% | 18.4% |
+| 2021 | 6.5% | 14.1% | 28.7% |
+| 2022 | 7.6% | −14.0% | −18.2% |
+| 2023 | −8.1% | 9.4% | 26.2% |
+| 2024 | −5.5% | 12.0% | 24.9% |
+| 2025 | 9.6% | 20.7% | 17.7% |
+| 2026 | 3.7% | 9.2% | 12.3% |
+
+2022 is +7.6% for the strategy and −14.0% for the long-only book. The financed drawdown of −25.1% bottoms on 27 January 2025. The losing years are 2023 and 2024.
+
+From 2023 the slow equity carry is negative on essentially every day for SPY, IWM, VGK, EWJ, EEM, EPP and EWC. The rule is short equities while the dividend yield sits below the T-bill. In the combined book, 2023 is negative in every class. In 2024 international equities, bonds and US equities are negative, and commodities and FX are positive. On standalone books, the slow trend makes +15.9% in 2022, −11.1% in 2023 and +6.0% in 2024. The slow carry makes −15.4%, −6.0% and −9.3% in those three years. The 2023 loss is mostly the slow trend. The 2024 loss is mostly carry.
 
 ## Limits
 
-The published Carver results are on futures. Futures carry is a term-structure slope. The ETF stand-in is a dividend yield or a FRED spread, small and slow. The test says that stand-in does not recover the futures result. It does not say the framework fails on futures.
+Equity carry here is the trailing dividend yield minus the T-bill. That is also, roughly, the carry of an equity-index future. Bond carry uses the FRED yield, which is a daily series, and it has no roll-down. Commodity and FX carry are absent. The result does not say the framework fails on futures.
 
-The window is a long equity bull market. The long-only control collects that drift at a controlled volatility. The strategy spends part of its risk budget on shorts and on timing, and gives the drift back.
+The window is a long equity bull market. The long-only control collects that drift at a controlled volatility, and until this correction it did so without paying to borrow. The strategy spends part of its risk budget on shorts and on timing.
+
+No paired test is reported on the Sharpe gap. Over about 18 years the standard error of an annual Sharpe is about 0.24. The four blocks are subperiods with no refit, and the label "2009–2012" ended on 31 December 2011. The annual table in the financing section is a finer cut of the same rules, not a replacement of the published blocks. Universe choices that used the sample, notably dropping TIP carry because of 2011–2022, are data knowledge. Freezing the rules before seeing the backtest is what the repository shows.
 
 The backtest fills at the same close that produces the signal. A live order goes out at the next open. The paper-trading loop is there to measure that difference. It is not a second chance to retune the rules.
 
