@@ -10,6 +10,7 @@ from systrade.backtest.metrics import (
     ANN_FACTOR,
     WALK_FORWARD,
     annual_volatility,
+    block_bootstrap_sharpe_difference,
     cagr,
     calmar_ratio,
     equity_curve,
@@ -111,3 +112,29 @@ def test_walk_forward_slices_four_periods_without_overlap():
         for _, start, end in WALK_FORWARD
     )
     assert table["sharpe"].notna().all()
+
+
+def test_block_bootstrap_difference_is_the_sharpe_gap():
+    left = pd.Series([0.01, 0.02, -0.01, 0.03])
+    right = pd.Series([0.0, 0.0, 0.0, 0.01])
+    result = block_bootstrap_sharpe_difference(left, right, block=2, n_draws=30, seed=0)
+    assert result["difference"] == pytest.approx(sharpe_ratio(left) - sharpe_ratio(right))
+    assert result["ci_low"] <= result["ci_high"]
+    assert result["n_days"] == 4
+
+
+def test_block_bootstrap_keeps_the_seed():
+    dates = pd.bdate_range("2020-01-01", periods=80)
+    rng = np.random.default_rng(2)
+    left = pd.Series(rng.normal(0.0004, 0.01, 80), index=dates)
+    right = pd.Series(rng.normal(0.0001, 0.01, 80), index=dates)
+    first = block_bootstrap_sharpe_difference(left, right, block=5, n_draws=40, seed=7)
+    second = block_bootstrap_sharpe_difference(left, right, block=5, n_draws=40, seed=7)
+    assert first == second
+
+
+def test_block_bootstrap_needs_two_common_days():
+    left = pd.Series([0.01, 0.02, np.nan], index=pd.bdate_range("2020-01-01", periods=3))
+    right = pd.Series([0.0, np.nan, 0.01], index=left.index)
+    with pytest.raises(ValueError):
+        block_bootstrap_sharpe_difference(left, right, block=1, n_draws=10, seed=0)

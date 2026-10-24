@@ -122,6 +122,7 @@ def simulate(
     slippage: float = SLIPPAGE_MULTIPLIER,
     rates: dict[str, float] | None = None,
     funding: pd.Series | None = None,
+    short_rebate: float = 1.0,
     ann_factor: int = ANN_FACTOR,
 ) -> dict[str, pd.DataFrame | pd.Series | float]:
     """
@@ -130,10 +131,11 @@ def simulate(
     Un k non fini laisse la position bufferisée inchangée (donnée manquante).
     Un k nul est une cible plate : on solde.
 
-    `funding` est le T-bill annuel, déjà décalé d'un jour. Le cash
-    résiduel, capital moins la valeur des positions, le touche :
-    un débit paie le taux, un crédit (produit des shorts, cash oisif)
-    le reçoit. Zéro si la série est absente.
+    `funding` est le T-bill annuel, déjà décalé d'un jour. Le débit qui
+    finance les longs le paie en entier. Le cash oisif le reçoit en entier.
+    Les produits de vente à découvert le reçoivent à hauteur de
+    `short_rebate` (1 = rebate plein, 0 = aucun). À rebate 1, c'est le
+    cash résiduel, capital moins la valeur des positions.
     """
     if rates is None:
         rates = {}
@@ -174,8 +176,10 @@ def simulate(
 
         price_pnl = held * px_prev * r
         borrow_pnl = np.maximum(-held, 0.0) * px_prev * borrow / ann_factor
-        cash = cap_start - float(np.sum(held * px_prev))
-        fund = cash * rf[t] / ann_factor
+        long_notional = float(np.sum(np.maximum(held, 0.0) * px_prev))
+        short_notional = float(np.sum(np.maximum(-held, 0.0) * px_prev))
+        idle_or_debit = cap_start - long_notional
+        fund = (idle_or_debit + short_rebate * short_notional) * rf[t] / ann_factor
         funding_pnl[t] = fund
         cap = cap_start + float(price_pnl.sum() - borrow_pnl.sum()) + fund
 
@@ -251,6 +255,7 @@ def backtest_from_forecast(
     spread: float = DEFAULT_SPREAD,
     slippage: float = SLIPPAGE_MULTIPLIER,
     funding: pd.Series | None = None,
+    short_rebate: float = 1.0,
 ) -> dict[str, pd.DataFrame | pd.Series | float]:
     """Forecast combiné (ou forecast d'une seule règle) → chemin de capital."""
     if weights is None:
@@ -274,6 +279,7 @@ def backtest_from_forecast(
         slippage=slippage,
         rates=rates,
         funding=funding,
+        short_rebate=short_rebate,
     )
     result["idm"] = idm
     result["weights"] = w
