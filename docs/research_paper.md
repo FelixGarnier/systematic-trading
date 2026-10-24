@@ -52,7 +52,7 @@ SHY was excluded because its annualised volatility of about 1.5% produces a vola
 
 The adjusted price folds dividends into the series, so a ratio of two adjusted prices is a total return. A split does not appear as a jump. Raw prices are used for position size and for the cash balance.
 
-All prices are available from January 2007. The evaluation window begins 2 January 2009 (two years of warm-up for EWMA estimates, forecast scalars, and portfolio-level correlations). The final observation is 13 October 2026, yielding 4,472 evaluation days.
+All prices are available from January 2007. The evaluation window begins 2 January 2009, two years of warm-up for the EWMA estimates, the forecast scalars, and the correlations. The final observation is 23 October 2026, 4,480 evaluation days, 17.5 years at 256 days a year.
 
 ### 3.2 Rate data
 
@@ -266,7 +266,7 @@ Table 6 is the financed book by year. It is a presentation cut, not a new estima
 | 2025 | 9.6% | 20.7% | 17.7% |
 | 2026 | 3.7% | 9.2% | 12.3% |
 
-The control falls from 1.00 to 0.87. It was the book that borrowed and did not pay. The strategy moves from 0.41 to 0.44. On excess returns the figures that matter are 0.31 and 0.73. A total-return Sharpe counts the bill the book receives. An excess Sharpe takes it back out.
+The control falls from 1.00 to 0.87. It was the book that borrowed and did not pay. On this common window the unfunded strategy Sharpe is 0.40, and the financed total-return Sharpe is 0.44. On excess returns the figures that matter are 0.31 and 0.73. A total-return Sharpe counts the bill the book receives. An excess Sharpe takes it back out.
 
 **Table 7. Excess Sharpe of each rule as its own book, at three rebates on short proceeds.** The debit that funds longs always pays the full bill. Idle cash always earns it. Only the interest on short proceeds changes. A retail stock account often receives little or none of that rebate.
 
@@ -282,7 +282,7 @@ The control falls from 1.00 to 0.87. It was the book that borrowed and did not p
 
 The carry books are the most sensitive to the rebate. Table 3, before any cash charge, shows Sharpes of 0.18 and 0.17. Table 7, in excess of the bill, shows 0.27 and 0.26 when short proceeds earn the full T-bill, and 0.14 and 0.13 when they earn none. The long-only book does not change with the rebate, because it holds no shorts.
 
-A book that keeps only EWMAC 16/64 and 32/128, with those two weights renormalised and the same FDM machinery, has an excess Sharpe of 0.32. The full strategy, at a full rebate, has 0.31. In excess of the bill, the fast trend and the two carry rules neither add nor subtract. Across the rebate range the strategy's own excess Sharpe runs from 0.25 to 0.31. The standard error of an annual Sharpe over this window is about 0.24, so that premium is not separated from zero either. An interval that contains zero does not show the two books are equivalent. It shows this sample cannot tell them apart.
+A book that keeps only EWMAC 16/64 and 32/128, with those two weights renormalised and the same FDM machinery, has an excess Sharpe of 0.32. The full strategy, at a full rebate, has 0.31. The difference is 0.01, inside a standard error of about 0.24, so the fast trend and the two carry rules are not distinguishable from adding nothing. That is not a finding that they are neutral. Across the rebate range the strategy's own excess Sharpe runs from 0.25 to 0.31, also inside that standard error, so its own premium is not separated from zero either. An interval that contains zero does not show two books are equivalent. It shows this sample cannot tell them apart.
 
 The position that earns the next day's return is linear in the forecast before the buffer and the leverage cap. Inside the combined book, each rule's capped forecast, times its renormalised weight, times the FDM of that day, is its share of the instrument forecast. The traded position's price P&L is split in that proportion, using the forecast from the previous close. The pieces add up to the price P&L. They are not standalone books.
 
@@ -306,9 +306,9 @@ What is measured about equities, and only this, is the sign of the slow carry. F
 
 The excess-return Sharpe of the strategy minus the long-only book is −0.42. `block_bootstrap_sharpe_difference`, 2,000 circular block draws with seed 0, gives a 95% interval of about [−1.03, +0.17] at a 21-day block and [−0.96, +0.10] at a 63-day block. Both include zero. The fraction of draws in which the strategy is ahead is about 0.08 and 0.05. An interval that contains zero does not show the two books are the same. It shows this sample cannot separate them.
 
-The same decade was hard for trend-following as an industry, not only for this ETF book. AQR, citing Bloomberg, reports the SG Trend Index — the ten largest trend-following CTAs, equal-weighted, net of fees — at 1.8% a year with 11.3% volatility over 2010–2019, against 7.5% for a global 60/40. Société Générale's index then made +27.3% in 2022. This book's financed total return that year was +7.6%. The index trades futures, is net of manager fees, and is not this universe. The comparison is only that a weak trend result against a passive book over these years is the public record, and that 2022 was the year the futures trend index worked.
+The same decade was hard for trend-following as an industry, not only for this ETF book. AQR (2022), citing Bloomberg, reports the SG Trend Index — the ten largest trend-following CTAs, equal-weighted, net of fees — at 1.8% a year with 11.3% realized volatility over 2010–2019, against 7.5% for a global 60/40 (MSCI World and the Bloomberg Barclays Global Aggregate, hedged to the dollar). The same note records the index at +36% from January through September 2022, while that 60/40 was at −20%. This book's financed total return for the whole of 2022 was +7.6%. The windows are not the same, the index trades futures, and it is net of manager fees. The comparison is only that a weak trend result against a passive book over the 2010s is the public record, and that 2022 was a year the futures trend index worked.
 
-A regression of the strategy's daily excess return on the long-only book's, with Newey-West standard errors and 21 lags, has a beta of 0.12 (t = 1.54) and an annualised alpha of +2.7% (t = 1.08), on 4,479 days. The strategy is not a scaled copy of the control. The alpha is not distinguishable from zero either.
+A regression of the strategy's daily excess return on the long-only book's, with Newey-West standard errors and 21 lags, has a beta of 0.12 (t = 1.54) and an annualised alpha of +2.7% (t = 1.08). The regression has 4,479 days. The evaluation has 4,480. The missing day is the first return, which has no previous close to pair. The strategy is not a scaled copy of the control. The alpha is not distinguishable from zero either.
 
 The evaluation window is 17.5 years when a year is 256 trading days. Calendar time from January 2009 to October 2026 is a few months longer. The standard error of an annual Sharpe over 17.5 years is about 0.24, which is why the bootstrap interval is wide.
 
@@ -355,7 +355,7 @@ The audit trail records, for every session: target positions, forecast values, w
 
 ## 8. Conclusion
 
-The rules were frozen before the first performance number and were not refit. On the original cost model the signals trail the long-only book, 0.40 against 1.00. Once borrowed cash pays the T-bill, the excess-return Sharpes are 0.31 and 0.73. The difference is −0.42. A block bootstrap does not exclude zero, which does not mean the books are equivalent. A regression on the long-only book has a beta of 0.12 and an annualised alpha of +2.7%, neither distinguishable from zero at conventional levels. Inside the combined book, 2023's price loss is spread across the trend rules, and 2024's is the carry. 2022 is a positive year.
+The rules were frozen before the first performance number and were not refit. On the original cost model the signals trail the long-only book, 0.40 against 1.00. Once borrowed cash pays the T-bill, the excess-return Sharpes are 0.31 and 0.73. The difference is −0.42. A block bootstrap does not exclude zero, which does not mean the books are equivalent. A regression on the long-only book has a beta of 0.12 and an annualised alpha of +2.7%, neither distinguishable from zero at conventional levels. Inside the combined book, the 2023 price loss is about −8.3 points from the three trend rules and −3.7 from the two carry rules. Carry is about a third of that loss, not a remainder. 2024's price loss is the carry. 2022 is a positive year.
 
 The implementation, the control, and the paper-trading loop are the deliverable. A futures version needs a roll module and another broker. It does not need a new sizing engine.
 
@@ -365,6 +365,7 @@ For a V2 using futures, the infrastructure is in place. The `BrokerInterface` ab
 
 ## References
 
+- AQR (2022). "Trend-Following: Why Now? A Macro Perspective." AQR Capital Management, Fourth Quarter 2022. SG Trend Index figures via Bloomberg.
 - Asness, C., Moskowitz, T., and Pedersen, L. (2013). "Value and Momentum Everywhere." *Journal of Finance*, 68(3), 929–985.
 - Baz, J., Granger, N., Harvey, C., Le Roux, N., and Rattray, S. (2015). "Dissecting Investment Strategies in the Cross Section and Time Series." *SSRN Working Paper*.
 - Carver, R. (2015). *Systematic Trading*. Harriman House.
