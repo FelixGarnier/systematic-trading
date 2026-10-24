@@ -121,6 +121,7 @@ def simulate(
     spread: float = DEFAULT_SPREAD,
     slippage: float = SLIPPAGE_MULTIPLIER,
     rates: dict[str, float] | None = None,
+    funding: pd.Series | None = None,
     ann_factor: int = ANN_FACTOR,
 ) -> dict[str, pd.DataFrame | pd.Series | float]:
     """
@@ -128,6 +129,11 @@ def simulate(
 
     Un k non fini laisse la position bufferisée inchangée (donnée manquante).
     Un k nul est une cible plate : on solde.
+
+    `funding` est le T-bill annuel, déjà décalé d'un jour. Le cash
+    résiduel, capital moins la valeur des positions, le touche :
+    un débit paie le taux, un crédit (produit des shorts, cash oisif)
+    le reçoit. Zéro si la série est absente.
     """
     if rates is None:
         rates = {}
@@ -138,6 +144,11 @@ def simulate(
     px = prices_unadj.reindex(index=dates, columns=cols).to_numpy(dtype=float)
     rets = total_returns.reindex(index=dates, columns=cols).to_numpy(dtype=float)
     borrow = np.array([rates.get(c, 0.0) for c in cols], dtype=float)
+    if funding is None:
+        rf = np.zeros(len(dates))
+    else:
+        aligned = funding.reindex(dates).to_numpy(dtype=float)
+        rf = np.where(np.isfinite(aligned), aligned, 0.0)
 
     n_rows, n_cols = k.shape
     capital = np.zeros(n_rows)
@@ -147,6 +158,7 @@ def simulate(
     turnover = np.zeros(n_rows)
     trade_costs = np.zeros(n_rows)
     borrow_costs = np.zeros(n_rows)
+    funding_pnl = np.zeros(n_rows)
     held_hist = np.zeros((n_rows, n_cols))
     pnl = np.zeros((n_rows, n_cols))
 
@@ -162,7 +174,10 @@ def simulate(
 
         price_pnl = held * px_prev * r
         borrow_pnl = np.maximum(-held, 0.0) * px_prev * borrow / ann_factor
-        cap = cap_start + float(price_pnl.sum() - borrow_pnl.sum())
+        cash = cap_start - float(np.sum(held * px_prev))
+        fund = cash * rf[t] / ann_factor
+        funding_pnl[t] = fund
+        cap = cap_start + float(price_pnl.sum() - borrow_pnl.sum()) + fund
 
         if cap < 1.0:
             held[:] = 0.0
@@ -214,6 +229,8 @@ def simulate(
         "turnover": pd.Series(turnover, index=index, name="turnover"),
         "trade_costs": pd.Series(trade_costs, index=index, name="trade_costs"),
         "borrow_costs": pd.Series(borrow_costs, index=index, name="borrow_costs"),
+        "funding": pd.Series(funding_pnl, index=index, name="funding"),
+        "excess_returns": pd.Series(port_ret - rf / ann_factor, index=index, name="excess_return"),
         "capital0": capital0,
     }
 
@@ -233,6 +250,7 @@ def backtest_from_forecast(
     max_leverage: float = MAX_LEVERAGE,
     spread: float = DEFAULT_SPREAD,
     slippage: float = SLIPPAGE_MULTIPLIER,
+    funding: pd.Series | None = None,
 ) -> dict[str, pd.DataFrame | pd.Series | float]:
     """Forecast combiné (ou forecast d'une seule règle) → chemin de capital."""
     if weights is None:
@@ -255,6 +273,7 @@ def backtest_from_forecast(
         spread=spread,
         slippage=slippage,
         rates=rates,
+        funding=funding,
     )
     result["idm"] = idm
     result["weights"] = w
@@ -386,6 +405,7 @@ def run_backtest(
         weights=weights,
         rates=borrow,
         capital0=capital0,
+        funding=rates["DTB3"] / 100.0,
     )
 
     cols = assembled["shares_per_dollar"].columns
@@ -395,6 +415,7 @@ def run_backtest(
         prices_adj.reindex(columns=cols).pct_change(),
         capital0=capital0,
         rates=borrow,
+        funding=rates["DTB3"] / 100.0,
     )
     strategy["idm"] = assembled["idm"]
     strategy["weights"] = assembled["weights"]
