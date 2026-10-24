@@ -166,3 +166,61 @@ def walk_forward(
             "n_days": int(window.dropna().shape[0]),
         })
     return pd.DataFrame(rows).set_index("period")
+
+
+def block_bootstrap_sharpe_difference(
+    left: pd.Series,
+    right: pd.Series,
+    block: int = 21,
+    n_draws: int = 2000,
+    seed: int = 0,
+    ann_factor: int = ANN_FACTOR,
+) -> dict[str, float]:
+    """
+    Écart de Sharpe annualisé, left − right, et son intervalle à 95 %.
+
+    Les deux séries sont alignées sur les dates communes, puis retirées
+    ensemble par blocs circulaires. L'appariement des jours est conservé.
+    `seed` fixe les tirages. Le résultat du papier est block=21 et block=63,
+    n_draws=2000, seed=0, sur les rendements excédentaires.
+    """
+    if block < 1:
+        raise ValueError(f"block doit être >= 1, reçu {block}")
+    paired = pd.concat(
+        [left.rename("left"), right.rename("right")], axis=1
+    ).dropna()
+    y = paired["left"].to_numpy(dtype=float)
+    x = paired["right"].to_numpy(dtype=float)
+    nobs = len(y)
+    if nobs < 2:
+        raise ValueError("il faut au moins deux jours communs")
+
+    def _sharpe(sample: np.ndarray) -> float:
+        sigma = float(sample.std(ddof=1))
+        if sigma == 0.0 or not np.isfinite(sigma):
+            return float("nan")
+        return float(np.sqrt(ann_factor) * sample.mean() / sigma)
+
+    observed = _sharpe(y) - _sharpe(x)
+    rng = np.random.default_rng(seed)
+    nblocks = int(np.ceil(nobs / block))
+    diffs = np.empty(n_draws)
+    for i in range(n_draws):
+        starts = rng.integers(0, nobs, size=nblocks)
+        take = np.concatenate([(np.arange(block) + s) % nobs for s in starts])[:nobs]
+        diffs[i] = _sharpe(y[take]) - _sharpe(x[take])
+    finite = diffs[np.isfinite(diffs)]
+    if len(finite) == 0:
+        low = high = fraction = float("nan")
+    else:
+        low, high = np.quantile(finite, [0.025, 0.975])
+        fraction = float(np.mean(finite >= 0.0))
+    return {
+        "difference": float(observed),
+        "ci_low": float(low),
+        "ci_high": float(high),
+        "fraction_nonnegative": float(fraction),
+        "n_days": float(nobs),
+        "block": float(block),
+        "n_draws": float(n_draws),
+    }

@@ -80,6 +80,25 @@ def test_short_cash_earns_the_tbill():
     assert result["funding"].iloc[1] > 0.0
 
 
+def test_zero_short_rebate_pays_the_long_debit_and_not_the_short():
+    prices, returns = _market([100.0, 100.0], [0.0, 0.0])
+    k = pd.DataFrame({"SPY": [-0.01, -0.01]}, index=prices.index)
+    rf = pd.Series(0.05, index=prices.index)
+    full = simulate(
+        k, prices, returns, capital0=100_000.0, delta=0.0, spread=0.0, rates={}, funding=rf
+    )
+    none = simulate(
+        k, prices, returns, capital0=100_000.0, delta=0.0, spread=0.0, rates={},
+        funding=rf, short_rebate=0.0,
+    )
+    assert full["funding"].iloc[1] > none["funding"].iloc[1]
+    held = none["positions"]["SPY"].iloc[0]
+    short_notional = -held * 100.0
+    idle = none["capital_start"].iloc[1] - 0.0
+    assert none["funding"].iloc[1] == pytest.approx(idle * 0.05 / 256)
+    assert short_notional > 0.0
+
+
 def test_borrow_is_charged_on_the_short_held_overnight():
     prices, returns = _market([100.0, 100.0], [0.0, 0.0])
     k = pd.DataFrame({"SPY": [-0.0001, -0.0001]}, index=prices.index)

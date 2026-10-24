@@ -92,7 +92,7 @@ Annual total returns of this financed book. This cut was not in the first note. 
 
 2022 is +7.6% for the strategy and −14.0% for the long-only book. The financed drawdown of −25.1% bottoms on 27 January 2025. The losing years are 2023 and 2024.
 
-From 2023 the slow equity carry is negative on essentially every day for SPY, IWM, VGK, EWJ, EEM, EPP and EWC. The rule is short equities while the dividend yield sits below the T-bill. In the combined book, 2023 is negative in every class. In 2024 international equities, bonds and US equities are negative, and commodities and FX are positive. On standalone books, the slow trend makes +15.9% in 2022, −11.1% in 2023 and +6.0% in 2024. The slow carry makes −15.4%, −6.0% and −9.3% in those three years. The 2023 loss is mostly the slow trend. The 2024 loss is mostly carry.
+From 2023 the slow equity carry is negative on essentially every day for SPY, IWM, VGK, EWJ, EEM, EPP and EWC. Inside the combined book, the traded position's price P&L is split by each rule's share of the forecast. In 2023 the three trend rules contribute about −8.3 percentage points and the two carry rules about −3.7. In 2024 the two carry rules contribute about −5.6 and the slow trend +3.7. The excess-return gap versus the long-only book is −0.42. `block_bootstrap_sharpe_difference` in `metrics.py`, with a 21-day block, 2,000 draws and seed 0, puts a 95% interval around [−1.03, +0.17]. It includes zero.
 
 ## Limits
 
@@ -100,7 +100,7 @@ Equity carry here is the trailing dividend yield minus the T-bill. That is also,
 
 The window is a long equity bull market. The long-only control collects that drift at a controlled volatility, and until this correction it did so without paying to borrow. The strategy spends part of its risk budget on shorts and on timing.
 
-No paired test is reported on the Sharpe gap. Over about 18 years the standard error of an annual Sharpe is about 0.24. The four blocks are subperiods with no refit, and the label "2009–2012" ended on 31 December 2011. The annual table in the financing section is a finer cut of the same rules, not a replacement of the published blocks. Universe choices that used the sample, notably dropping TIP carry because of 2011–2022, are data knowledge. Freezing the rules before seeing the backtest is what the repository shows.
+The paired comparison of the two excess-return Sharpes is `block_bootstrap_sharpe_difference` in `metrics.py`. Over about 18 years the standard error of an annual Sharpe is about 0.24, and the 21-day interval above includes zero. The four blocks are subperiods with no refit, and the label "2009–2012" ended on 31 December 2011. The annual table in the financing section is a finer cut of the same rules, not a replacement of the published blocks. Universe choices that used the sample, notably dropping TIP carry because of 2011–2022, are data knowledge. Freezing the rules before seeing the backtest is what the repository shows.
 
 The backtest fills at the same close that produces the signal. A live order goes out at the next open. The paper-trading loop is there to measure that difference. It is not a second chance to retune the rules.
 
