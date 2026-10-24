@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 import pandas as pd
 import pytest
 
+from systrade.execution.alpaca_broker import signed_position_qty
 from systrade.execution.broker import MemoryBroker
 from systrade.execution.journal import Journal
 from systrade.execution.loop import close_session, open_session, work_session
@@ -22,6 +23,12 @@ from systrade.execution.types import Order, Quote
 from systrade.portfolio.sizing import MAX_LEVERAGE
 
 AS_OF = pd.Timestamp("2024-06-03")
+
+
+def test_short_qty_stays_negative_when_alpaca_already_signed_it():
+    assert signed_position_qty(-223, "PositionSide.SHORT") == -223
+    assert signed_position_qty(223, "PositionSide.SHORT") == -223
+    assert signed_position_qty(100, "PositionSide.LONG") == 100
 
 
 def _plan(**overrides):

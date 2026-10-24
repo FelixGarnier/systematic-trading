@@ -6,22 +6,22 @@
     <string>com.systrade.paper</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/felixgarnier/Desktop/Paper Trading/venv/bin/python</string>
+        <string>/Users/felixgarnier/Paper Trading/venv/bin/python</string>
         <string>-u</string>
         <string>-m</string>
         <string>systrade.execution</string>
         <string>tick</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/felixgarnier/Desktop/Paper Trading</string>
+    <string>/Users/felixgarnier/Paper Trading</string>
     <key>StartInterval</key>
     <integer>300</integer>
     <key>RunAtLoad</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/Users/felixgarnier/Desktop/Paper Trading/data/live/scheduler.log</string>
+    <string>/Users/felixgarnier/Paper Trading/data/live/scheduler.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/felixgarnier/Desktop/Paper Trading/data/live/scheduler.log</string>
+    <string>/Users/felixgarnier/Paper Trading/data/live/scheduler.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PYTHONUNBUFFERED</key>
