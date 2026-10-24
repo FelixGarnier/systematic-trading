@@ -1,8 +1,10 @@
 # Trend following and carry on US ETFs
 
-The Carver framework on fourteen liquid US ETFs, from 2 January 2009 to 13 October 2026. The rules, the weights, and the volatility target were frozen before the first performance number. Nothing was retuned afterwards.
+The Carver framework on fourteen liquid US ETFs, from 2 January 2009 to 23 October 2026, 17.5 years at 256 days a year. The rules, the weights, and the volatility target were frozen before the first performance number. Nothing was retuned afterwards.
 
-The published result is a Sharpe of 0.41 and a CAGR of 4.1%. The long-only control in the same engine, constant forecast +10, has 1.00. SPY has 0.88. A daily-rebalanced 60/40 has 0.99. The signals trail the always-long book by 0.59 of Sharpe. Costs of spread and stock-borrow take about 0.06, inside the speed limit of 0.17.
+With the lagged T-bill charged on cash, the excess-return Sharpe is 0.31 for the strategy and 0.73 for the long-only control. SPY, unlevered, is 0.80. A daily 60/40 is 0.85. The gap versus the control is −0.42. `block_bootstrap_sharpe_difference`, 2,000 draws, seed 0, a 21-day block, gives a 95% interval of about [−1.03, +0.17]. The interval includes zero. That does not mean the two books are equivalent. It means this sample cannot separate them. A book of only the two slow trends has an excess Sharpe of 0.32, next to 0.31 for the full book.
+
+The first circulated print, cut on 13 October and before the cash charge, was 0.41 against 1.00. On the common window the unfunded strategy Sharpe is 0.40. Those figures are the history of the note. The comparison above is the one that charges the bill and subtracts it.
 
 The printable note is [`docs/research_paper.pdf`](docs/research_paper.pdf). A French version is [`docs/research_note.md`](docs/research_note.md).
 
@@ -22,9 +24,9 @@ $w$ are handcrafted class weights: 20% US equities (SPY, IWM), 20% international
 
 A forecast at the close of day $t$ earns the next close-to-close total return, including dividends. There is no open in the price files, so the backtest does not pretend to trade the next open. A no-trade band of 10% around the target suppresses small trades. Gross leverage is then capped at 2. Trading costs are half-spread times 1.5, plus stock-borrow on shorts. Commission is zero. Cash left by the positions earns, or pays, the lagged three-month T-bill: a debit pays it, and short proceeds earn it. The rate on the books at date $t$ is the rate already shifted by one day in the data.
 
-## Result
+## First print
 
-The table is the one published with the note. Spread and stock-borrow are in. The T-bill on cash is not. That omission is corrected in the next section, and the first numbers stay.
+This table is the note as first circulated, cut on 13 October 2026, with spread and stock-borrow and no charge for cash. On the common window through 23 October the same unfunded Sharpe is 0.40. The long-only book is 1.00 on both cuts. The result used above is the excess-return comparison, not this table.
 
 | Book | Sharpe | CAGR | Volatility | Max drawdown |
 |---|---:|---:|---:|---:|
@@ -100,7 +102,7 @@ Equity carry here is the trailing dividend yield minus the T-bill. That is also,
 
 The window is a long equity bull market. The long-only control collects that drift at a controlled volatility, and until this correction it did so without paying to borrow. The strategy spends part of its risk budget on shorts and on timing.
 
-The paired comparison of the two excess-return Sharpes is `block_bootstrap_sharpe_difference` in `metrics.py`. Over about 18 years the standard error of an annual Sharpe is about 0.24, and the 21-day interval above includes zero. The four blocks are subperiods with no refit, and the label "2009–2012" ended on 31 December 2011. The annual table in the financing section is a finer cut of the same rules, not a replacement of the published blocks. Universe choices that used the sample, notably dropping TIP carry because of 2011–2022, are data knowledge. Freezing the rules before seeing the backtest is what the repository shows.
+The paired comparison of the two excess-return Sharpes is `block_bootstrap_sharpe_difference` in `metrics.py`. Over 17.5 years of 256-day years the standard error of an annual Sharpe is about 0.24, and the 21-day interval above includes zero. The four blocks are subperiods with no refit, and the label "2009–2012" ended on 31 December 2011. The annual table in the financing section is a finer cut of the same rules, not a replacement of the published blocks. Universe choices that used the sample, notably dropping TIP carry because of 2011–2022, are data knowledge. Freezing the rules before seeing the backtest is what the repository shows.
 
 The backtest fills at the same close that produces the signal. A live order goes out at the next open. The paper-trading loop is there to measure that difference. It is not a second chance to retune the rules.
 

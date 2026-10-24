@@ -8,7 +8,7 @@ October 2026
 
 ## Abstract
 
-This paper evaluates a systematic trading strategy implementing the full Carver (2015, 2019) framework — exponentially-weighted moving average crossover (EWMAC) trend rules, carry signals, volatility-scaled position sizing, a no-trade buffer, and an instrument diversification multiplier — on a universe of fourteen liquid US ETFs over the period January 2009 to October 2026. The rules, the weights, and the volatility target were written down before the first performance number and were not changed after it. The strategy achieves an annualised Sharpe ratio of 0.41 and a CAGR of 4.1%, against 0.88 for SPY, 0.99 for a daily-rebalanced 60/40, and 1.00 for a long-only book run through the same engine at a constant forecast of +10. Spread and stock-borrow account for about 0.063 Sharpe units, inside the speed limit of 0.167. Tables 1 to 4 are this book. They do not charge the T-bill on cash. Section 5.5 does. On excess returns the financed Sharpes are 0.31 for the strategy and 0.73 for the long-only book. A block bootstrap of that gap does not exclude zero at 95%. The evaluation window is 2 January 2009 to 13 October 2026, 4,472 days, which is 17.5 years at 256 days a year.
+This paper evaluates a systematic trading strategy implementing the full Carver (2015, 2019) framework — exponentially-weighted moving average crossover (EWMAC) trend rules, carry signals, volatility-scaled position sizing, a no-trade buffer, and an instrument diversification multiplier — on a universe of fourteen liquid US ETFs over the period January 2009 to October 2026. The rules, the weights, and the volatility target were written down before the first performance number and were not changed after it. Every table uses 2 January 2009 to 23 October 2026, 4,480 days, 17.5 years at 256 days a year. Before any charge for borrowed cash the strategy Sharpe is 0.40 and the long-only book is 1.00. A print cut on 13 October had reported 0.41. Once the lagged T-bill is charged on cash, the excess-return Sharpes are 0.31 and 0.73. A block bootstrap of that gap does not exclude zero at 95%, and an interval that contains zero does not show the books are equivalent. Spread and stock-borrow account for about 0.063 Sharpe units, inside the speed limit of 0.167.
 
 ---
 
@@ -18,7 +18,7 @@ Systematic trend-following and carry represent two of the most extensively docum
 
 A natural question is whether the same architecture can be applied to an ETF universe a retail account can trade. The rules were frozen before the first performance number. The result is reported as it came out, including the underperformance.
 
-The contribution is a complete implementation of the framework, a control that removes the signals, and a paper-trading loop that runs the same book. Three facts organise the tables. The slow trend, as its own book, has a Sharpe of 0.49, and the fast trend has 0.05. Standalone carry drawdowns exceed −55%. Removing the signals, and keeping the volatility target, the weights, and the spread and borrow costs, raises the Sharpe from 0.41 to 1.00. That comparison does not yet charge the T-bill on borrowed cash. Section 5.5 does, and it is the comparison used in the conclusion.
+The contribution is a complete implementation of the framework, a control that removes the signals, and a paper-trading loop that runs the same book. Three facts organise the tables. The slow trend, as its own book, has a Sharpe of 0.49, and the fast trend has 0.05. Standalone carry drawdowns exceed −55%. Removing the signals, and keeping the volatility target, the weights, and the spread and borrow costs, raises the Sharpe from 0.40 to 1.00 on the common window. That comparison does not yet charge the T-bill on borrowed cash. Section 5.5 does, and the conclusion uses the excess-return comparison.
 
 ---
 
@@ -50,7 +50,7 @@ End-of-day prices are sourced from Tiingo. The universe consists of fourteen US 
 
 SHY was excluded because its annualised volatility of about 1.5% produces a volatility scalar near 138× capital, which cannot sit under a 2× leverage cap. That reason does not require the backtest. TIP carry was excluded because real-yield estimates looked biased over 2011–2022. That reason uses the sample. The list itself is of funds still listed in 2026. Closed funds are absent.
 
-The adjusted price series incorporates dividends multiplicatively, ensuring that return ratios and normalised signals are backward-look-through invariant. Raw (unadjusted) prices are used exclusively for position sizing and P&L attribution.
+The adjusted price folds dividends into the series, so a ratio of two adjusted prices is a total return. A split does not appear as a jump. Raw prices are used for position size and for the cash balance.
 
 All prices are available from January 2007. The evaluation window begins 2 January 2009 (two years of warm-up for EWMA estimates, forecast scalars, and portfolio-level correlations). The final observation is 13 October 2026, yielding 4,472 evaluation days.
 
@@ -158,18 +158,18 @@ Three benchmarks are evaluated over the identical window with the same start dat
 
 ### 5.1 Full-sample performance
 
-Table 1 reports annualised performance statistics over 4,472 evaluation days (2 January 2009 to 13 October 2026).
+Table 1 reports the book before the cash charge, over 4,480 evaluation days (2 January 2009 to 23 October 2026). At the printed precision this is the same table as the 13 October cut, except the strategy Sharpe, which is 0.40 rather than 0.41.
 
 **Table 1. Full-sample performance (2009–2026).**
 
 | Book | Sharpe | CAGR | Volatility | Max DD | Skew | Hit rate |
 |---|---:|---:|---:|---:|---:|---:|
-| Strategy | 0.41 | 4.1% | 11.6% | −29.9% | −0.58 | 53.7% |
+| Strategy | 0.40 | 4.1% | 11.6% | −29.9% | −0.58 | 53.7% |
 | SPY | 0.88 | 15.2% | 17.9% | −33.7% | −0.25 | 55.3% |
 | 60/40 | 0.99 | 10.2% | 10.4% | −21.0% | −0.14 | 55.7% |
 | Long-only vol target | 1.00 | 10.1% | 10.2% | −19.8% | −0.50 | 55.4% |
 
-The strategy has a lower Sharpe than the three benchmarks in this cost model. The long-only vol target is the comparison that removes the forecasts and keeps the rest. The gap of 0.59 is the forecasts, before any charge for borrowed cash. Spread and stock-borrow, 0.063 against 0.006 for the long-only book, leave about 0.53. Section 5.5 puts the T-bill on the cash and narrows the gap to 0.43 on total returns, and to 0.42 on excess returns.
+The strategy has a lower Sharpe than the three benchmarks in this cost model. The long-only vol target is the comparison that removes the forecasts and keeps the rest. The gap of 0.60 is the forecasts, before any charge for borrowed cash. Spread and stock-borrow, 0.063 against 0.006 for the long-only book, leave most of it. Section 5.5 puts the T-bill on the cash. On excess returns the gap is 0.42, and Section 5.5 shows that this sample does not separate it from zero.
 
 The $100,000 account started in January 2007, warmup included, ends near $226,000. The 4.1% CAGR belongs to the 2009–2026 window only, and compounds to about $202,000. The two figures are not the same path.
 
@@ -208,7 +208,7 @@ Three observations:
 
 2. **Standalone carry drawdowns are large.** Maximum drawdowns exceed −55%. That is a description of those two books. It is not a test that the carry signal is mean-reverting, and it is not the contribution of carry inside the combined book. Section 5.5 measures that contribution.
 
-3. **The combined book is below the best single rule.** The combined Sharpe of 0.41 sits below the standalone EWMAC 32/128 at 0.49. The difference is not the cost of carry. Carry's own books, in this table, have Sharpes of 0.18 and 0.17 and drawdowns past −55%. The slow trend, alone, is already 0.51 below the long-only control.
+3. **The combined book is below the best single rule.** The combined Sharpe of 0.40 sits below the standalone EWMAC 32/128 at 0.49. The difference is not the cost of carry. Carry's own books, in this table, have Sharpes of 0.18 and 0.17 and drawdowns past −55%. The slow trend, alone, is already 0.51 below the long-only control.
 
 ### 5.4 Asset-class contribution
 
@@ -228,7 +228,7 @@ Commodities and fixed income drive positive attribution; international equities 
 
 ### 5.5 Cash financing, added after the tables
 
-Tables 1 to 4 do not charge the T-bill on cash. A long position above the account's equity was borrowing for free. Short proceeds earned nothing. The rate was already in the data, lagged one day, and used by the carry rule. Putting it on the cash balance changes no forecast, no weight, and no volatility target. The sample in this section runs to 23 October 2026, ten days past Table 1. That is not what moves the Sharpes.
+Tables 1 to 4 and this section use the same window, 2 January 2009 to 23 October 2026, 4,480 days. On that window the unfunded strategy Sharpe is 0.40. The first circulated print, cut on 13 October, was 0.41. The long-only Sharpe is 1.00 on both cuts. The charge below is the only change between those books and Table 5.
 
 Cash is equity minus the marked value of the positions. A negative balance pays the lagged three-month bill. A positive balance, which is what a short leaves behind, earns it. The excess Sharpe then subtracts the same bill from the daily return, so a book that only holds cash scores zero. SPY and the 60/40 are unlevered. Their total-return Sharpe is the one in Table 1. Only the excess column charges them for the bill.
 
@@ -280,9 +280,9 @@ The control falls from 1.00 to 0.87. It was the book that borrowed and did not p
 | Carry medium | 0.27 | 0.20 | 0.14 |
 | Carry slow | 0.26 | 0.19 | 0.13 |
 
-The carry books move the most. Part of their rise from the 0.18 in Table 3 to about 0.40 in total return is the bill earned on short proceeds, not a stronger signal. At a zero rebate their excess Sharpes are 0.14 and 0.13. The long-only book does not change with the rebate, because it holds no shorts.
+The carry books are the most sensitive to the rebate. Table 3, before any cash charge, shows Sharpes of 0.18 and 0.17. Table 7, in excess of the bill, shows 0.27 and 0.26 when short proceeds earn the full T-bill, and 0.14 and 0.13 when they earn none. The long-only book does not change with the rebate, because it holds no shorts.
 
-A book that keeps only EWMAC 16/64 and 32/128, with those two weights renormalised and the same FDM machinery, has an excess Sharpe of 0.32. Dropping the fast trend and both carry rules does not close the gap to 0.73.
+A book that keeps only EWMAC 16/64 and 32/128, with those two weights renormalised and the same FDM machinery, has an excess Sharpe of 0.32. The full strategy, at a full rebate, has 0.31. In excess of the bill, the fast trend and the two carry rules neither add nor subtract. Across the rebate range the strategy's own excess Sharpe runs from 0.25 to 0.31. The standard error of an annual Sharpe over this window is about 0.24, so that premium is not separated from zero either. An interval that contains zero does not show the two books are equivalent. It shows this sample cannot tell them apart.
 
 The position that earns the next day's return is linear in the forecast before the buffer and the leverage cap. Inside the combined book, each rule's capped forecast, times its renormalised weight, times the FDM of that day, is its share of the instrument forecast. The traded position's price P&L is split in that proportion, using the forecast from the previous close. The pieces add up to the price P&L. They are not standalone books.
 
@@ -295,12 +295,18 @@ The position that earns the next day's return is linear in the forecast before t
 | EWMAC 32/128 | +4.1% | −4.7% | +3.7% |
 | Carry medium | −2.5% | −1.8% | −2.8% |
 | Carry slow | −2.5% | −1.9% | −2.8% |
+| Price, all rules | +5.6% | −11.8% | −3.7% |
+| Cash, the T-bill | +3.1% | +5.6% | −0.9% |
+| Costs | −1.2% | −1.2% | −1.0% |
+| Total, Table 6 | +7.6% | −8.1% | −5.5% |
 
-In 2023 the three trend rules contribute about −8.3 percentage points and the two carry rules about −3.7. The slow trend is the largest single piece, not the whole loss. In 2024 the two carry rules contribute about −5.6 points, the slow trend +3.7, and the fast trend −2.1. The 2024 price loss is the carry. The class split of the same combined book, which includes costs, is unchanged: 2023 is negative in every class, and 2024 is negative in equities and bonds and positive in commodities and FX.
+In 2023 the three trend rules contribute about −8.3 percentage points and the two carry rules about −3.7. The slow trend is the largest single piece, not the whole loss. In 2024 the two carry rules contribute about −5.6 points, the slow trend +3.7, and the fast trend −2.1. The rule rows are each compounded on their own, so they do not add to the total. The four rows under them do the adding in daily returns, then compound. Price plus cash plus costs reproduces Table 6. In 2023 the cash line is +5.6%: the short equity book was receiving the bill. In 2024 cash is −0.9% and costs −1.0%, so the total (−5.5%) is worse than the price loss (−3.7%).
 
 What is measured about equities, and only this, is the sign of the slow carry. From 2023 it is negative on essentially every day for SPY, IWM, VGK, EWJ, EEM, EPP and EWC. The rule was short those equities. Table 6 shows the trend book making money in 2020 and in 2022. A general claim that short equity trend lost the bull market is not the result.
 
-The excess-return Sharpe of the strategy minus the long-only book is −0.42. `block_bootstrap_sharpe_difference`, 2,000 circular block draws with seed 0, gives a 95% interval of about [−1.03, +0.17] at a 21-day block and [−0.96, +0.10] at a 63-day block. Both include zero. The fraction of draws in which the strategy is ahead is about 0.08 and 0.05. The point estimate is a gap. It is not separated from zero at 95%.
+The excess-return Sharpe of the strategy minus the long-only book is −0.42. `block_bootstrap_sharpe_difference`, 2,000 circular block draws with seed 0, gives a 95% interval of about [−1.03, +0.17] at a 21-day block and [−0.96, +0.10] at a 63-day block. Both include zero. The fraction of draws in which the strategy is ahead is about 0.08 and 0.05. An interval that contains zero does not show the two books are the same. It shows this sample cannot separate them.
+
+The same decade was hard for trend-following as an industry, not only for this ETF book. AQR, citing Bloomberg, reports the SG Trend Index — the ten largest trend-following CTAs, equal-weighted, net of fees — at 1.8% a year with 11.3% volatility over 2010–2019, against 7.5% for a global 60/40. Société Générale's index then made +27.3% in 2022. This book's financed total return that year was +7.6%. The index trades futures, is net of manager fees, and is not this universe. The comparison is only that a weak trend result against a passive book over these years is the public record, and that 2022 was the year the futures trend index worked.
 
 A regression of the strategy's daily excess return on the long-only book's, with Newey-West standard errors and 21 lags, has a beta of 0.12 (t = 1.54) and an annualised alpha of +2.7% (t = 1.08), on 4,479 days. The strategy is not a scaled copy of the control. The alpha is not distinguishable from zero either.
 
@@ -312,7 +318,7 @@ The evaluation window is 17.5 years when a year is 256 trading days. Calendar ti
 
 ### 6.1 Why the signals underperform on ETFs
 
-The long-only vol target in Table 1 has a Sharpe of 1.00. The strategy has 0.41. The difference is the forecasts, on a book that does not yet charge the T-bill for borrowed cash. Section 5.5 charges it. Equity carry in this implementation is the trailing dividend yield minus the T-bill, which is also, roughly, the carry of an equity-index future. Bond carry uses a daily FRED yield and has no roll-down. Commodity and FX carry are absent. A slow trend book at 0.49 does not need a weak carry proxy to sit far below the control.
+The long-only vol target in Table 1 has a Sharpe of 1.00. The strategy has 0.40. The difference is the forecasts, on a book that does not yet charge the T-bill for borrowed cash. Section 5.5 charges it. Equity carry in this implementation is the trailing dividend yield minus the T-bill, which is also, roughly, the carry of an equity-index future. Bond carry uses a daily FRED yield and has no roll-down. Commodity and FX carry are absent. A slow trend book at 0.49 does not need a weak carry proxy to sit far below the control.
 
 **The bull market is not, by itself, a demonstrated short-trend loss.** Table 6 shows the financed strategy up in 2020 and in 2022, two years in which equities were not a smooth bull market. What is measured is the carry sign from 2023, in Section 5.5. International equities are the negative class contribution in Table 4. That is a contribution, not a test that short trend was the mechanism.
 
@@ -325,7 +331,7 @@ Despite the signal underperformance, several design elements function as intende
 
 ### 6.3 No-tuning commitment
 
-No rule, weight, or volatility target was revised after the backtest was run. The design document was committed before the first performance calculation. A git commit is not a third-party timestamp, and Section 3.1 records the universe choices that used the sample. The Sharpe of 0.41 in Table 1 is the number produced by that frozen rule set under the original cost model. It is not a claim that the same number would survive every omitted cost. Section 5.5 is the check that was missing, and it is labelled as a correction of the engine.
+No rule, weight, or volatility target was revised after the backtest was run. The design document was committed before the first performance calculation. A git commit is not a third-party timestamp, and Section 3.1 records the universe choices that used the sample. The Sharpe of 0.40 in Table 1 is the number produced by that frozen rule set under the original cost model, on the window through 23 October 2026. It is not a claim that the same number would survive every omitted cost. Section 5.5 is the check that was missing, and it is labelled as a correction of the engine.
 
 The 250-test suite covering every module from volatility estimation through buffer computation ensures that the implementation is correct. No test was written after a failure was discovered post-facto; tests define the contract of each function.
 
@@ -349,7 +355,7 @@ The audit trail records, for every session: target positions, forecast values, w
 
 ## 8. Conclusion
 
-The rules were frozen before the first performance number and were not refit. On the original cost model the signals trail the long-only book, 0.41 against 1.00. Once borrowed cash pays the T-bill, the excess-return Sharpes are 0.31 and 0.73. The difference is −0.42, and a block bootstrap does not exclude zero at 95%. A regression on the long-only book has a beta of 0.12 and an annualised alpha of +2.7%, neither distinguishable from zero at conventional levels. Inside the combined book, 2023's price loss is spread across the trend rules, and 2024's is the carry. 2022 is a positive year.
+The rules were frozen before the first performance number and were not refit. On the original cost model the signals trail the long-only book, 0.40 against 1.00. Once borrowed cash pays the T-bill, the excess-return Sharpes are 0.31 and 0.73. The difference is −0.42. A block bootstrap does not exclude zero, which does not mean the books are equivalent. A regression on the long-only book has a beta of 0.12 and an annualised alpha of +2.7%, neither distinguishable from zero at conventional levels. Inside the combined book, 2023's price loss is spread across the trend rules, and 2024's is the carry. 2022 is a positive year.
 
 The implementation, the control, and the paper-trading loop are the deliverable. A futures version needs a roll module and another broker. It does not need a new sizing engine.
 
