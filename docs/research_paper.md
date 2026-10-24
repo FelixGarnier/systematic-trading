@@ -8,7 +8,7 @@ October 2026
 
 ## Abstract
 
-This paper evaluates a systematic trading strategy implementing the full Carver (2015, 2019) framework — exponentially-weighted moving average crossover (EWMAC) trend rules, carry signals, volatility-scaled position sizing, a no-trade buffer, and an instrument diversification multiplier — on a universe of fourteen liquid US ETFs over the period January 2009 to October 2026. The implementation is pre-registered: the design document, signal definitions, and portfolio construction rules were all finalised before any performance calculation. The strategy achieves an annualised Sharpe ratio of 0.41 and a CAGR of 4.1%, against 0.88 for SPY, 0.99 for a daily-rebalanced 60/40, and — critically — 1.00 for a long-only book run through the same engine at a constant forecast of +10. Transaction costs account for approximately 0.063 Sharpe units, well within the Carver speed-limit of 0.167; they cannot explain the gap. A clean control experiment isolates the source: when the signals are removed and the portfolio is held long-only at the same volatility target, performance improves materially. The numbers in the tables below are the book before cash financing. A later engine correction, not a retune, charges the lagged T-bill on borrowed cash and pays it on short proceeds. With that charge the strategy Sharpe is 0.44 and the long-only control is 0.87; in excess of the T-bill they are 0.31 and 0.73. The slow trend alone, at 0.48, is already far from the control, so the gap is not the carry. The 2022–2026 block is not a 2022 loss: 2022 is +7.6% for the financed strategy, and the drawdown of −25.1% bottoms on 27 January 2025. The annual table is in the README. Compounding the old 4.1% CAGR from 2009 reaches about $202,000. The path that ends near $226,000 starts in January 2007 and includes the warmup. The full pipeline — 250 unit tests, expandingwindow estimates, no look-ahead — is deployed in an Alpaca paper-trading loop that runs daily and writes a traceable audit trail to SQLite.
+This paper evaluates a systematic trading strategy implementing the full Carver (2015, 2019) framework — exponentially-weighted moving average crossover (EWMAC) trend rules, carry signals, volatility-scaled position sizing, a no-trade buffer, and an instrument diversification multiplier — on a universe of fourteen liquid US ETFs over the period January 2009 to October 2026. The implementation is pre-registered: the design document, signal definitions, and portfolio construction rules were all finalised before any performance calculation. The strategy achieves an annualised Sharpe ratio of 0.41 and a CAGR of 4.1%, against 0.88 for SPY, 0.99 for a daily-rebalanced 60/40, and 1.00 for a long-only book run through the same engine at a constant forecast of +10. Transaction costs of spread and stock-borrow account for approximately 0.063 Sharpe units, inside the speed limit of 0.167. Tables 1 to 4 are this book. Section 5.5 adds, without changing a rule, the T-bill on cash that the first engine omitted. With that charge the Sharpes are 0.44 and 0.87. The gap narrows from 0.59 to 0.43 and does not close. The full pipeline — 250 unit tests, expanding-window estimates, no look-ahead — is deployed in an Alpaca paper-trading loop.
 
 ---
 
@@ -188,11 +188,11 @@ To assess whether the full-sample result masks structural breaks, four non-overl
 | 2017–2021 | 0.77 | 8.2% | −11.7% |
 | 2022–2026 | 0.06 | −0.1% | −29.9% |
 
-Three of four periods produce positive Sharpe ratios. The final period (2022 onward) dominates the aggregate result. This period is characterised by a simultaneous drawdown in equities and fixed income — an environment where a book that is long growth assets and short duration faces persistent losses on both sides. The maximum drawdown of −29.9% is almost entirely attributable to this period.
+Three of four periods produce a positive Sharpe. The block labelled 2022–2026 contains the published maximum drawdown of −29.9%. It is one block, not a year. Section 5.5 splits it. The label "2009–2012" in the code ends on 31 December 2011. No parameter is refit between blocks, so these are subperiods.
 
 ### 5.3 Rule-level decomposition
 
-Each rule is evaluated in isolation by running the full engine with only that rule's capped forecast. This isolates the marginal information content of each signal.
+Each rule is evaluated by running the full engine on that rule's capped forecast alone. The Sharpe is the Sharpe of that book. It is not the marginal effect of adding the rule to the combination.
 
 **Table 3. Standalone rule performance.**
 
@@ -210,7 +210,7 @@ Three observations:
 
 2. **Carry drawdowns are extreme.** Standalone carry maximum drawdowns exceed −55%, an order of magnitude larger than what the carry rules contribute positively to the combined book. ETF carry is too stable and too mean-reverting to function as a reliable signal over shorter horizons.
 
-3. **The combination underperforms the best individual rule.** The combined strategy Sharpe of 0.41 is below the EWMAC 32/128 standalone of 0.49, which normally should not happen with genuine diversification. The carry signals, by adding drawdown risk without commensurate return, degrade the combination.
+3. **The combined book is below the best single rule.** The combined Sharpe of 0.41 sits below the standalone EWMAC 32/128 at 0.49. The difference is not the cost of carry. Carry's own books, in this table, have Sharpes of 0.18 and 0.17 and drawdowns past −55%. The slow trend, alone, is already 0.51 below the long-only control.
 
 ### 5.4 Asset-class contribution
 
@@ -226,7 +226,55 @@ Table 4 reports the Sharpe ratio of each asset class's daily P&L contribution to
 | US equities | 0.14 |
 | International equities | −0.09 |
 
-Commodities and fixed income drive positive attribution; international equities are mildly negative. This is consistent with prior literature: trend-following performs best in assets with autocorrelated prices and low noise-to-signal ratios. US and international equities in this period exhibit strong upward drift, which creates persistent short signals that lose money.
+Commodities and fixed income drive positive attribution; international equities are mildly negative. These are shares of the portfolio P&L, not standalone sleeves.
+
+### 5.5 Cash financing, added after the tables
+
+Tables 1 to 4 do not charge the T-bill on cash. A long position above the account's equity was borrowing for free. Short proceeds earned nothing. The rate was already in the data, lagged one day, and used by the carry rule. Putting it on the cash balance changes no forecast, no weight, and no volatility target. The sample in this section runs to 23 October 2026, ten days past Table 1. That is not what moves the Sharpes.
+
+Cash is equity minus the marked value of the positions. A negative balance pays the lagged three-month bill. A positive balance, which is what a short leaves behind, earns it. The excess Sharpe then subtracts the same bill from the daily return, so a book that only holds cash scores zero. SPY and the 60/40 are unlevered. Their total-return Sharpe is the one in Table 1. Only the excess column charges them for the bill.
+
+**Table 5. Same books after the cash charge.**
+
+| Book | Total Sharpe | Excess Sharpe | CAGR | Volatility | Max DD |
+|---|---:|---:|---:|---:|---:|
+| Strategy | 0.44 | 0.31 | 4.5% | 11.5% | −25.1% |
+| Long-only vol target | 0.87 | 0.73 | 8.7% | 10.2% | −20.3% |
+| SPY | 0.87 | 0.80 | 15.0% | 17.8% | −33.7% |
+| 60/40 | 0.99 | 0.85 | 10.2% | 10.4% | −21.0% |
+
+The control falls from 1.00 to 0.87. It was the book that borrowed and did not pay. The strategy moves from 0.41 to 0.44. The gap narrows from 0.59 to 0.43. In excess of the bill the gap is 0.73 − 0.31. On a financed slow-trend book the Sharpe is 0.48, and on the two financed carry books it is 0.40 and 0.41. The slow trend remains far from the control. Carry is not the gap of Table 1, and it is not the gap of Table 5.
+
+Table 6 is a presentation cut, not a new estimation. It replaces the habit of reading the fourth block as "2022".
+
+**Table 6. Annual total return of the financed book.**
+
+| Year | Strategy | Long-only | SPY |
+|---|---:|---:|---:|
+| 2009 | 2.3% | 15.2% | 26.4% |
+| 2010 | 8.7% | 21.2% | 15.1% |
+| 2011 | 4.4% | 9.3% | 1.9% |
+| 2012 | −0.9% | 12.0% | 16.0% |
+| 2013 | 6.9% | −2.6% | 32.3% |
+| 2014 | 10.5% | 6.0% | 13.5% |
+| 2015 | −4.4% | −8.7% | 1.3% |
+| 2016 | 6.4% | 14.0% | 12.0% |
+| 2017 | 6.2% | 15.6% | 21.7% |
+| 2018 | 4.8% | −7.5% | −4.6% |
+| 2019 | 7.5% | 26.5% | 31.2% |
+| 2020 | 15.1% | 9.4% | 18.4% |
+| 2021 | 6.5% | 14.1% | 28.7% |
+| 2022 | 7.6% | −14.0% | −18.2% |
+| 2023 | −8.1% | 9.4% | 26.2% |
+| 2024 | −5.5% | 12.0% | 24.9% |
+| 2025 | 9.6% | 20.7% | 17.7% |
+| 2026 | 3.7% | 9.2% | 12.3% |
+
+2022 is +7.6% for the strategy and −14.0% for the long-only book. The financed maximum drawdown is −25.1%, on 27 January 2025. The losing years are 2023 and 2024.
+
+From 2023 onward the slow equity-carry forecast is negative on essentially every day for SPY, IWM, VGK, EWJ, EEM, EPP and EWC. Dividend yield was below the bill, so the rule was short equities. Inside the combined book, 2023 is negative in every asset class: commodities −4.5%, international equities −3.8%, US equities −2.9%, FX −1.4%, bonds −0.7%. In 2024 international equities are −4.0%, bonds −3.5% and US equities −3.0%, while commodities are +3.0% and FX +3.1%. Standalone, the slow trend makes +15.9% in 2022, −11.1% in 2023 and +6.0% in 2024. The slow carry makes −15.4%, −6.0% and −9.3%. The 2023 loss is mostly the slow trend. The 2024 loss is mostly carry.
+
+No paired test is attached to either gap. Over about eighteen years the standard error of an annual Sharpe is about 0.24.
 
 ---
 
@@ -234,11 +282,7 @@ Commodities and fixed income drive positive attribution; international equities 
 
 ### 6.1 Why the signals underperform on ETFs
 
-The long-only vol target benchmark is decisive. A portfolio that simply holds the fourteen ETFs long, scaled to the same volatility, with the same instrument weights and the same cost model, achieves a Sharpe of 1.00 over the same window. The Carver framework adds five signals at a cost of 0.59 Sharpe points.
-
-Two structural mismatches explain this:
-
-**ETF carry is not futures carry.** In a futures book, carry is derived from the slope of the term structure: the difference between spot and deferred contracts. It is observable, precise, and updated at each roll. For equity ETFs, the proxy — trailing twelve-month dividend yield minus cash — is smooth, backward-looking, and dominated by the same factors as price momentum (rising prices compress yield). For bonds, FRED yields are a daily series (DGS7, DGS20, and the credit spread) and still omit the roll-down. The carry scalars of ~84 (vs. Carver's ~30 for futures) reflect that the raw signal is far smaller than its futures counterpart. After capping, the carry rules contribute signal that is only loosely related to the economic carry the framework was designed to exploit.
+The long-only vol target in Table 1 has a Sharpe of 1.00. The strategy has 0.41. The difference is the forecasts, on a book that does not yet charge the T-bill for borrowed cash. Section 5.5 charges it. Equity carry in this implementation is the trailing dividend yield minus the T-bill, which is also, roughly, the carry of an equity-index future. Bond carry uses a daily FRED yield and has no roll-down. Commodity and FX carry are absent. A slow trend book at 0.49 does not need a weak carry proxy to sit far below the control.
 
 **The 2009–2026 equity bull market punishes short equity signals.** The EWMAC framework generates short positions when prices trend down and holds them until the trend reverses. US equities in this sample experienced three brief drawdowns (2009, 2020, 2022) interspersed with strong upward trends. Short signals generated in drawdowns were frequently reversed before they could profit. International equities underperformed US equities throughout, generating additional short signals against the global equity bid.
 
@@ -249,7 +293,7 @@ Despite the signal underperformance, several design elements function as intende
 - **Volatility targeting**: the strategy stays close to its 13% target except in high-leverage, low-volatility regimes where the 2× cap binds. Mean leverage of 1.72× indicates that the strategy is not systematically over-sized.
 - **The buffer works**: approximately 29% of share variation is absorbed by the buffer; only 66% of instrument-days generate a trade. Turnover of 24.1× is substantially below the speed limit.
 - **The long-only vol target is competitive**: Sharpe 1.00 vs. 0.99 for the 60/40, with materially lower maximum drawdown (−19.8% vs. −21.0%). The allocation and sizing engine, stripped of signals, is a credible portfolio.
-- **Walk-forward stability**: the first three periods (2009–2021) are consistent at Sharpe 0.41–0.77. The negative contribution is concentrated in a specific macro regime (2022 rate-shock) rather than distributed across the sample.
+- **The first three blocks are positive.** Their Sharpes are 0.45, 0.41 and 0.77. The fourth block is where the published drawdown sits. Which year inside that block produces it is measured in Section 5.5, on the financed book.
 
 ### 6.3 No-tuning commitment
 
