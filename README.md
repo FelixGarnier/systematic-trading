@@ -56,7 +56,7 @@ The slow trend, as its own book, has a Sharpe of 0.49. The fast trend has 0.05. 
 
 Added after the note, without changing a rule, a weight, or the volatility target. Cash left by the positions earns or pays the lagged three-month T-bill. A debit pays it. Short proceeds earn it. SPY and the 60/40 are unlevered, so their total-return Sharpe is unchanged. The excess column subtracts the T-bill as well.
 
-The sample here runs to 23 October 2026, ten days past the published window. The comparison with the table above is the financing, not those ten days.
+The sample here is the common window, through 23 October 2026. The comparison with the table above is the financing. On that window the unfunded strategy Sharpe is 0.40, not the 0.41 of the 13 October print.
 
 | Book | Total Sharpe | Excess Sharpe | CAGR | Volatility | Max drawdown |
 |---|---:|---:|---:|---:|---:|
@@ -65,7 +65,7 @@ The sample here runs to 23 October 2026, ten days past the published window. The
 | SPY | 0.87 | 0.80 | 15.0% | 17.8% | −33.7% |
 | 60/40 | 0.99 | 0.85 | 10.2% | 10.4% | −21.0% |
 
-The control falls from 1.00 to 0.87 because it was borrowing without paying. The strategy moves from 0.41 to 0.44. The gap narrows from 0.59 to 0.43. It does not close.
+The control falls from 1.00 to 0.87 because it was borrowing without paying. The strategy moves from 0.40 to 0.44. The gap narrows from 0.60 to 0.43. It does not close.
 
 ![Equity and drawdown once cash pays or earns the T-bill](reports/equity_financed.png)
 
